@@ -1,7 +1,5 @@
 let debug_enabled_ = true;
 
-const React = require('React');
-
 const debug = function () {
   if (debug_enabled_){
     [].unshift.call(arguments, '|HYPER-PANE|');
@@ -15,6 +13,7 @@ const debug = function () {
 
 
 const SESSION_SET_ACTIVE = 'SESSION_SET_ACTIVE';
+const SESSION_RESIZE = 'SESSION_RESIZE';
 
 function getRootGroups(termGroups) {
   return Object.keys(termGroups)
@@ -105,7 +104,23 @@ const onSwitchWithActiveSession = (dispatch) => (i) => {
       from: activeSessionUid,
       to: nextSessionUid,
       effect() {
-        // TODO: dispatch a SESSION_RESIZE for each session
+        const fromSession = state.sessions.sessions[activeSessionUid];
+        const toSession = state.sessions.session[nextSessionUid];
+        dispatch({
+          type: SESSION_RESIZE,
+          uid: fromSession.child,
+          cols: toSession.cols,
+          rows: toSesison.rows,
+          isStandalone: false
+        });
+        dispatch({
+          type: SESSION_RESIZE,
+          uid: toSession.child,
+          cols: fromSession.cols,
+          rows: fromSession.rows,
+          isStandalone: false
+        });
+        // FIXME: In some conditions, focus is not on activeSession after switch
       }
     });
   });
@@ -128,7 +143,7 @@ const keydownHandler = (onMoveToPane, onSwitchWithActiveSession) => (e) => {
       }
     }
 
-    if (e.shiftKey) {
+    if (e.altKey) {
       debug('switchWithPane', index);
       onSwitchWithActiveSession(index);
       return;
