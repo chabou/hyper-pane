@@ -1,0 +1,50 @@
+{
+  "name": "hyper-pane",
+  "version": "0.1.0",
+  "description": "Extension for Hyper.app to enhance pane navigation.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chabou/hyper-pane.git"
+  },
+  "keywords": [
+    "hyper",
+    "hyper.app",
+    "hyperterm",
+    "pane",
+    "navigation"
+  ],
+  "author": "CHaBou",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chabou/hyper-pane/issues"
+  },
+  "homepage": "https://github.com/chabou/hyper-pane#readme",
+  "xo": {
+    "extends": "xo-react",
+    "esnext": true,
+    "space": true,
+    "env": [
+      "browser",
+      "node"
+    ],
+    "rules": {
+      "new-cap": 0,
+      "no-warning-comments": 0,
+      "complexity": 0,
+      "import/prefer-default-export": 0,
+      "react/prop-types": 0,
+      "react/jsx-no-bind": 0
+    },
+    "ignores": [
+      "build/**",
+      "app/dist/**",
+      "app/static/**",
+      "assets/**"
+    ]
+  },
+  "dependencies": {}
+}
