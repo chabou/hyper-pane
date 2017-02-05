@@ -1,3 +1,5 @@
+const Mousetrap = require('mousetrap');
+
 let debug_enabled_ = true;
 
 const debug = function () {
@@ -102,55 +104,9 @@ const onSwitchWithActiveSession = (dispatch) => (i) => {
     dispatch({
       type: UI_SWITCH_SESSIONS,
       from: activeSessionUid,
-      to: nextSessionUid,
-      effect() {
-        const fromSession = state.sessions.sessions[activeSessionUid];
-        const toSession = state.sessions.session[nextSessionUid];
-        dispatch({
-          type: SESSION_RESIZE,
-          uid: fromSession.child,
-          cols: toSession.cols,
-          rows: toSesison.rows,
-          isStandalone: false
-        });
-        dispatch({
-          type: SESSION_RESIZE,
-          uid: toSession.child,
-          cols: fromSession.cols,
-          rows: fromSession.rows,
-          isStandalone: false
-        });
-        // FIXME: In some conditions, focus is not on activeSession after switch
-      }
+      to: nextSessionUid
     });
   });
-};
-
-const isValidIndex = (index) => index > 0 && index <=9;
-
-const keydownHandler = (onMoveToPane, onSwitchWithActiveSession) => (e) => {
-    debug('Keydown', e);
-
-    if (!e.ctrlKey || !e.metaKey) {
-      return;
-    }
-
-    let index = e.keyCode - 48;
-    if (!isValidIndex(index)) {
-      index = parseInt(e.key, 10);
-      if (!isValidIndex(e.key)) {
-        return;
-      }
-    }
-
-    if (e.altKey) {
-      debug('switchWithPane', index);
-      onSwitchWithActiveSession(index);
-      return;
-    }
-
-    debug('moveToPane', index);
-    onMoveToPane(index);
 };
 
 const findTermGroupWithSessionUid = (termGroups, sessionUid) => {
@@ -192,11 +148,11 @@ exports.mapTermsState = (state, map) => {
 
 exports.getTermGroupProps = (uid, parentProps, props) => {
   const { sortedSessionGroups, onMoveToPane, onSwitchWithActiveSession } = parentProps;
-  return Object.assign({}, props, {sortedSessionGroups: sortedSessionGroups[uid], onMoveToPane, onSwitchWithActiveSession});
+  return Object.assign({}, props, {sortedSessionGroups: sortedSessionGroups[uid]});//, onMoveToPane, onSwitchWithActiveSession});
 };
 
 exports.getTermProps = (uid, parentProps, props) => {
-  const { termGroup, sortedSessionGroups, onMoveToPane, onSwitchWithActiveSession } = parentProps;
+  const { termGroup, sortedSessionGroups } = parentProps;
   const index = sortedSessionGroups.indexOf(termGroup.uid);
   // Only 1-9 keys are used and if there is more than 9 terms, number 9 is reserved to the last term
   let termShorcutNum = 0;
@@ -208,7 +164,7 @@ exports.getTermProps = (uid, parentProps, props) => {
     termShorcutNum = 9;
   }
   debug('Setting Shortcutnum', termShorcutNum, 'to Term', uid);
-  return Object.assign({}, props, {termShorcutNum, onMoveToPane, onSwitchWithActiveSession});
+  return Object.assign({}, props, {termShorcutNum});//, onMoveToPane, onSwitchWithActiveSession});
 };
 
 exports.mapTermsDispatch = (dispatch, map) => {
@@ -217,29 +173,90 @@ exports.mapTermsDispatch = (dispatch, map) => {
   return map;
 }
 
+exports.decorateTerms = (Terms, { React, notify, Notification }) => {
+  return class extends React.Component {
+    constructor(props, context) {
+      super(props, context);
+      this.handleFocusActive = this.handleFocusActive.bind(this);
+      this.onTermsRef = this.onTermsRef.bind(this);
+    }
+
+    handleFocusActive() {
+      const term = this.terms.getActiveTerm();
+      if (term) {
+        term.focus();
+      }
+    }
+
+    reattachKeyListner() {
+      if (this.keys) {
+        this.keys.reset();
+      }
+      this.handleFocusActive();
+      this.attachKeyListeners();
+    }
+
+    attachKeyListeners() {
+      const term = this.terms.getActiveTerm();
+      if (!term) {
+        return;
+      }
+      const document = term.getTermDocument();
+      const keys = new Mousetrap(document);
+
+      ['1','2','3','4','5','6','7','8','9'].forEach(num => {
+        let shortcut = `meta+alt+${num}`;
+        debug('Add shortcut', shortcut);
+        keys.bind(
+          shortcut,
+          (e) => {
+            this.props.onMoveToPane(num);
+            this.reattachKeyListner();
+          }
+        );
+        shortcut = `meta+alt+ctrl+${num}`;
+        debug('Add shortcut', shortcut);
+        keys.bind(
+          shortcut,
+          (e) => {
+            this.props.onSwitchWithActiveSession(num);
+            this.reattachKeyListner();
+          }
+        );
+      });
+      this.keys = keys;
+    }
+
+    onTermsRef(terms) {
+      this.terms = terms;
+    }
+
+    componentDidUpdate(prev) {
+      if (prev.activeSession !== this.props.activeSession) {
+        this.reattachKeyListner();
+      }
+    }
+
+    componentWillUnmount() {
+      if (this.keys) {
+        this.keys.reset();
+      }
+    }
+
+    render() {
+      return React.createElement(Terms, Object.assign({}, this.props, {
+        ref: this.onTermsRef
+      }));
+    }
+  }
+}
+
 exports.decorateTerm = (Term, { React, notify }) => {
   debug('Decorate Term', Term);
   return class extends React.Component {
     constructor(props, context) {
         super(props, context);
-        this._onTerminal = this._onTerminal.bind(this);
-        debug('props', this.props);
     }
-
-    _onTerminal(term) {
-        debug('OnTerminal')
-        if (this.props && this.props.onTerminal) {
-            this.props.onTerminal(term);
-        }
-        //this.config = evaluateConfig(Object.assign({}, defaultConfg, window.config.getConfig().hypernpm || {}));
-        term.uninstallKeyboard();
-        term.keyboard.handlers_ = [
-            [ "keydown", keydownHandler(this.props.onMoveToPane, this.props.onSwitchWithActiveSession) ],
-            ...term.keyboard.handlers_
-        ];
-        term.installKeyboard();
-    }
-
     render () {
       const myCustomChildrenBefore = React.createElement(
         'div',
@@ -256,7 +273,7 @@ exports.decorateTerm = (Term, { React, notify }) => {
       const customChildrenBefore = this.props.customChildrenBefore
         ? Array.from(this.props.customChildrenBefore).concat(myCustomChildrenBefore)
         : myCustomChildrenBefore;
-      return React.createElement(Term, Object.assign({}, this.props, {customChildrenBefore, onTerminal: this._onTerminal}));
+      return React.createElement(Term, Object.assign({}, this.props, {customChildrenBefore}));
     }
   }
 }
