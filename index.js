@@ -16,6 +16,13 @@ const debug = function () {
 
 const SESSION_SET_ACTIVE = 'SESSION_SET_ACTIVE';
 const SESSION_RESIZE = 'SESSION_RESIZE';
+const SESSION_ADD = 'SESSION_ADD';
+const TERM_GROUP_RESIZE = 'TERM_GROUP_RESIZE';
+const TERM_GROUP_EXIT = 'TERM_GROUP_EXIT';
+const DIRECTION = {
+  HORIZONTAL: 'HORIZONTAL',
+  VERTICAL: 'VERTICAL'
+};
 
 function getRootGroups(termGroups) {
   return Object.keys(termGroups)
@@ -150,11 +157,46 @@ const onMoveToDirectionPane = (dispatch) => (type) => {
   });
 }
 
+const updateChildrenFrames = (state, groupUid) => {
+  debug('updateChildrenFrames: call on', groupUid);
+  const group = state.termGroups[groupUid];
+  if (group.sessionUid) {
+    debug('updateChildrenFrames: sessionUid found, skipping', group.sessionUid);
+    return state;
+  }
+  if (group.children.length === 0) {
+    debug('updateChildrenFrames: no children found, skipping', group.sessionUid);
+    return state;
+  }
+  const originProp = (group.direction === DIRECTION.HORIZONTAL) ? 'y' : 'x';
+  const sizeProp = (group.direction === DIRECTION.HORIZONTAL) ? 'h' : 'w';
+
+  let currentOrigin = group.frame[originProp];
+  for (let i = 0; i < group.children.length; i++) {
+    debug('dealing child', group.children[i]);
+    const child = state.termGroups[group.children[i]];
+    const size = group.frame[sizeProp] * (group.sizes ? group.sizes[i] : 1 / group.children.length);
+    debug('Setting frame for', child, currentOrigin, size);
+    const frame = group.frame.asMutable();
+    frame[originProp] = currentOrigin;
+    frame[sizeProp] = size;
+
+    state = state.setIn(['termGroups', child.uid, 'frame'], frame);
+
+    state = updateChildrenFrames(state, child.uid);
+
+    currentOrigin += size;
+  }
+
+  return state;
+};
+
 /**
  * Plugin bindings
  */
 
 exports.reduceTermGroups = (state, action) => {
+
   switch (action.type) {
     case 'UI_SWITCH_SESSIONS':
       const fromTermGroupUid = findBySession(state, action.from).uid;
@@ -167,6 +209,17 @@ exports.reduceTermGroups = (state, action) => {
       state = state.setIn(['termGroups', fromTermGroupUid, 'sessionUid'], action.to)
         .setIn(['termGroups', toTermGroupUid, 'sessionUid'], action.from);
       break;
+    case SESSION_ADD:
+      if (state.activeRootGroup && !state.termGroups[state.activeRootGroup].frame) {
+        // Init rootFrame
+        state = state.setIn(['termGroups', state.activeRootGroup, 'frame'], {x:0, y:0, w:1, h:1});
+      }
+    case TERM_GROUP_RESIZE:
+    case TERM_GROUP_EXIT: {
+      state.activeRootGroup && (state = updateChildrenFrames(state, state.activeRootGroup));
+      break;
+    }
+
   }
   return state;
 }
