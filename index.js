@@ -47,12 +47,32 @@ const setActiveSession = (uid) => {
   };
 }
 
+function findBySession(termGroupState, sessionUid) {
+  const {termGroups} = termGroupState;
+  return Object.keys(termGroups)
+    .map(uid => termGroups[uid])
+    .find(group => group.sessionUid === sessionUid);
+}
+
 /**
  * Plugin Code
  */
 
 const UI_MOVE_TO_PANE = 'UI_MOVE_TO_PANE';
+const UI_MOVE_UP_PANE = 'UI_MOVE_UP_PANE';
+const UI_MOVE_DOWN_PANE = 'UI_MOVE_DOWN_PANE';
+const UI_MOVE_LEFT_PANE = 'UI_MOVE_LEFT_PANE';
+const UI_MOVE_RIGHT_PANE = 'UI_MOVE_RIGHT_PANE';
 const UI_SWITCH_SESSIONS = 'UI_SWITCH_SESSIONS';
+
+const JUMP_KEYS = 'ctrl+alt';
+const SWITCH_KEYS = 'ctrl+alt+shift';
+const NAV_KEYS = {
+  UI_MOVE_UP_PANE: 'ctrl+alt+up',
+  UI_MOVE_DOWN_PANE: 'ctrl+alt+down',
+  UI_MOVE_LEFT_PANE: 'ctrl+alt+left',
+  UI_MOVE_RIGHT_PANE: 'ctrl+alt+right'
+};
 
 // For each rootGroup, it sorts its children
 function getSortedSessionGroups(termGroups) {
@@ -112,34 +132,41 @@ const onSwitchWithActiveSession = (dispatch) => (i, terms) => {
   });
 };
 
-const findTermGroupWithSessionUid = (termGroups, sessionUid) => {
-  debug('Looking for session', sessionUid, 'in', termGroups);
-  const keys = Object.keys(termGroups);
-  for (let i = 0; i < keys.length; i += 1) {
-    const key = keys[i];
-    const termGroup = termGroups[key];
-    if (termGroup.sessionUid === sessionUid) {
-      return key;
-    }
-  }
+const onMoveToDirectionPane = (dispatch) => (type) => {
+  dispatch((dispatch, getState) => {
+    dispatch({
+      type,
+      effect() {
+        const {sessions, termGroups} = getState();
+        const termGroup = findBySession(termGroups, sessions.activeUid);
+        debug('Move Pane', type, termGroup.uid);
+        if (termGroup.parentUid === null) {
+          debug('ignoring move for single group');
+        } else {
+          // TODO
+        }
+      }
+    });
+  });
 }
-
 
 /**
  * Plugin bindings
  */
 
 exports.reduceTermGroups = (state, action) => {
-  if (action.type === 'UI_SWITCH_SESSIONS') {
-    const fromTermGroupUid = findTermGroupWithSessionUid(state.termGroups, action.from);
-    const toTermGroupUid = findTermGroupWithSessionUid(state.termGroups, action.to);
-    if (!fromTermGroupUid || !toTermGroupUid) {
+  switch (action.type) {
+    case 'UI_SWITCH_SESSIONS':
+      const fromTermGroupUid = findBySession(state, action.from).uid;
+      const toTermGroupUid = findBySession(state, action.to).uid;
+      if (!fromTermGroupUid || !toTermGroupUid) {
 
-      return state;
-    }
-    debug('Switching sessions for termGroups', fromTermGroupUid, toTermGroupUid);
-    state = state.setIn(['termGroups', fromTermGroupUid, 'sessionUid'], action.to)
-      .setIn(['termGroups', toTermGroupUid, 'sessionUid'], action.from);
+        return state;
+      }
+      debug('Switching sessions for termGroups', fromTermGroupUid, toTermGroupUid);
+      state = state.setIn(['termGroups', fromTermGroupUid, 'sessionUid'], action.to)
+        .setIn(['termGroups', toTermGroupUid, 'sessionUid'], action.from);
+      break;
   }
   return state;
 }
@@ -151,7 +178,7 @@ exports.mapTermsState = (state, map) => {
 
 exports.getTermGroupProps = (uid, parentProps, props) => {
   const { sortedSessionGroups, onMoveToPane, onSwitchWithActiveSession } = parentProps;
-  return Object.assign({}, props, {sortedSessionGroups: sortedSessionGroups[uid]});//, onMoveToPane, onSwitchWithActiveSession});
+  return Object.assign({}, props, {sortedSessionGroups: sortedSessionGroups[uid]});
 };
 
 exports.getTermProps = (uid, parentProps, props) => {
@@ -167,12 +194,13 @@ exports.getTermProps = (uid, parentProps, props) => {
     termShorcutNum = 9;
   }
   debug('Setting Shortcutnum', termShorcutNum, 'to Term', uid);
-  return Object.assign({}, props, {termShorcutNum});//, onMoveToPane, onSwitchWithActiveSession});
+  return Object.assign({}, props, {termShorcutNum});
 };
 
 exports.mapTermsDispatch = (dispatch, map) => {
   map.onMoveToPane = onMoveToPane(dispatch);
   map.onSwitchWithActiveSession = onSwitchWithActiveSession(dispatch);
+  map.onMoveToDirectionPane = onMoveToDirectionPane(dispatch);
   return map;
 }
 
@@ -208,7 +236,7 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
       const keys = new Mousetrap(document);
 
       ['1','2','3','4','5','6','7','8','9'].forEach(num => {
-        let shortcut = `ctrl+alt+${num}`;
+        let shortcut = JUMP_KEYS + `+${num}`;
         debug('Add shortcut', shortcut);
         keys.bind(
           shortcut,
@@ -218,7 +246,7 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
             this.reattachKeyListner();
           }
         );
-        shortcut = `ctrl+alt+shift+${num}`;
+        shortcut = SWITCH_KEYS + `+${num}`;
         debug('Add shortcut', shortcut);
         keys.bind(
           shortcut,
@@ -226,6 +254,15 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
             this.props.onSwitchWithActiveSession(num, this.terms);
             e.preventDefault();
             this.reattachKeyListner();
+          }
+        );
+      });
+
+      Object.keys(NAV_KEYS).forEach(direction => {
+        keys.bind(
+          NAV_KEYS[direction],
+          (e) => {
+            this.props.onMoveToDirectionPane(direction)
           }
         );
       });
