@@ -85,7 +85,7 @@ const onMoveToPane = (dispatch) => (i) => {
   });
 };
 
-const onSwitchWithActiveSession = (dispatch) => (i) => {
+const onSwitchWithActiveSession = (dispatch) => (i, terms) => {
   dispatch((dispatch, getState) => {
     const state = getState();
     const activeSessionUid = state.sessions.activeUid;
@@ -104,8 +104,11 @@ const onSwitchWithActiveSession = (dispatch) => (i) => {
     dispatch({
       type: UI_SWITCH_SESSIONS,
       from: activeSessionUid,
-      to: nextSessionUid
+      to: nextSessionUid,
     });
+
+    debug('Terms', terms);
+
   });
 };
 
@@ -205,21 +208,23 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
       const keys = new Mousetrap(document);
 
       ['1','2','3','4','5','6','7','8','9'].forEach(num => {
-        let shortcut = `meta+alt+${num}`;
+        let shortcut = `ctrl+alt+${num}`;
         debug('Add shortcut', shortcut);
         keys.bind(
           shortcut,
           (e) => {
             this.props.onMoveToPane(num);
+            e.preventDefault();
             this.reattachKeyListner();
           }
         );
-        shortcut = `meta+alt+ctrl+${num}`;
+        shortcut = `ctrl+alt+shift+${num}`;
         debug('Add shortcut', shortcut);
         keys.bind(
           shortcut,
           (e) => {
-            this.props.onSwitchWithActiveSession(num);
+            this.props.onSwitchWithActiveSession(num, this.terms);
+            e.preventDefault();
             this.reattachKeyListner();
           }
         );
