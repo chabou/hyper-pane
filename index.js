@@ -64,7 +64,7 @@ function findBySession(termGroupState, sessionUid) {
 /**
  * Plugin Code
  */
-
+// Action types
 const UI_MOVE_TO_PANE = 'UI_MOVE_TO_PANE';
 const UI_MOVE_UP_PANE = 'UI_MOVE_UP_PANE';
 const UI_MOVE_DOWN_PANE = 'UI_MOVE_DOWN_PANE';
@@ -72,6 +72,7 @@ const UI_MOVE_LEFT_PANE = 'UI_MOVE_LEFT_PANE';
 const UI_MOVE_RIGHT_PANE = 'UI_MOVE_RIGHT_PANE';
 const UI_SWITCH_SESSIONS = 'UI_SWITCH_SESSIONS';
 
+// Keys
 const JUMP_KEYS = 'ctrl+alt';
 const SWITCH_KEYS = 'ctrl+alt+shift';
 const NAV_KEYS = {
@@ -81,10 +82,30 @@ const NAV_KEYS = {
   UI_MOVE_RIGHT_PANE: 'ctrl+alt+right'
 };
 
+// Others
+const ROOT_FRAME = {
+  x: 0,
+  y: 0,
+  w: 1,
+  h: 1
+};
+
 // For each rootGroup, it sorts its children
 function getSortedSessionGroups(termGroups) {
   return getRootGroups(termGroups).reduce((result, {uid}) =>
     Object.assign(result, {[uid]: findChildSessions(termGroups, uid)}), {})
+};
+
+// Get the index of the next or previous group,
+// depending on the movement direction:
+const getNeighborIndex = (groups, uid, type) => {
+  console.log('getNeighborIndex', groups, uid, type);
+  if (type === UI_MOVE_RIGHT_PANE ||
+      type === UI_MOVE_DOWN_PANE) {
+    return (groups.indexOf(uid) + 1) % groups.length;
+  }
+
+  return (groups.indexOf(uid) + groups.length - 1) % groups.length;
 };
 
 const onMoveToPane = (dispatch) => (i) => {
@@ -150,7 +171,32 @@ const onMoveToDirectionPane = (dispatch) => (type) => {
         if (termGroup.parentUid === null) {
           debug('ignoring move for single group');
         } else {
-          // TODO
+          let parentGroup = termGroups.termGroups[termGroup.parentUid];
+          let currentChildUid = termGroup.uid;
+          const moveDirection = (type === UI_MOVE_RIGHT_PANE || type === UI_MOVE_LEFT_PANE) ? DIRECTION.VERTICAL : DIRECTION.HORIZONTAL;
+          // looking for the first parent with a compatible direction.
+          while (parentGroup !== undefined && parentGroup.direction !== moveDirection) {
+            currentChildUid = parentGroup.uid;
+            parentGroup = parentGroup.parentUid ? termGroups.termGroups[parentGroup.parentUid] : undefined;
+          }
+          if (parentGroup) {
+            // remain in the same termGroup
+            debug('ParentGroup found', parentGroup.uid);
+            const index = getNeighborIndex(parentGroup.children, currentChildUid, type);
+            debug('index', index);
+            let target = termGroups.termGroups[parentGroup.children[index]];
+            // looking for the first child with a sessionUid (ie. not a container)
+            while (target && target.sessionUid === null && target.children.length) {
+              debug('No sessionUid in', target.uid);
+              target = termGroups.termGroups[target.children[0]];
+              debug('Testing', target.uid);
+            }
+            if (target.sessionUid) {
+              dispatch(setActiveSession(target.sessionUid));
+            } else {
+              console.warn('No sessionUid found for', target.uid);
+            }
+          }
         }
       }
     });
@@ -212,7 +258,7 @@ exports.reduceTermGroups = (state, action) => {
     case SESSION_ADD:
       if (state.activeRootGroup && !state.termGroups[state.activeRootGroup].frame) {
         // Init rootFrame
-        state = state.setIn(['termGroups', state.activeRootGroup, 'frame'], {x:0, y:0, w:1, h:1});
+        state = state.setIn(['termGroups', state.activeRootGroup, 'frame'], ROOT_FRAME);
       }
     case TERM_GROUP_RESIZE:
     case TERM_GROUP_EXIT: {
