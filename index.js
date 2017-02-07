@@ -302,11 +302,7 @@ exports.reduceTermGroups = (state, action) => {
 exports.reduceUI = (state, action) => {
   switch (action.type) {
     case SESSION_SET_ACTIVE:
-      if (action.focusPoint) {
         state = state.setIn(['paneNavigation', 'focusPoint'], action.focusPoint);
-      } else {
-        state = state.without('paneNavigation');
-      }
       break;
   }
   return state;
@@ -446,7 +442,6 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
 }
 
 exports.decorateTerm = (Term, { React, notify }) => {
-  debug('Decorate Term', Term);
   return class extends React.Component {
     constructor(props, context) {
         super(props, context);
@@ -471,4 +466,6 @@ exports.decorateTerm = (Term, { React, notify }) => {
     }
   }
 }
+
+
 
