@@ -45,11 +45,12 @@ function findChildSessions(termGroups, uid) {
     ), []);
 }
 
-const setActiveSession = (uid) => {
+const setActiveSession = (uid, focusPoint) => {
   return dispatch => {
     dispatch({
       type: SESSION_SET_ACTIVE,
-      uid
+      uid,
+      focusPoint
     });
   };
 }
@@ -74,7 +75,7 @@ const UI_SWITCH_SESSIONS = 'UI_SWITCH_SESSIONS';
 
 // Keys
 const JUMP_KEYS = 'ctrl+alt';
-const SWITCH_KEYS = 'ctrl+alt+shift';
+const SWITCH_MODIFIER = 'shift';
 const NAV_KEYS = {
   UI_MOVE_UP_PANE: 'ctrl+alt+up',
   UI_MOVE_DOWN_PANE: 'ctrl+alt+down',
@@ -108,94 +109,122 @@ const getNeighborIndex = (groups, uid, type) => {
   return (groups.indexOf(uid) + groups.length - 1) % groups.length;
 };
 
-const onMoveToPane = (dispatch) => (i) => {
+const onMoveToPane = dispatch => (index, doSwitch) => {
   dispatch((dispatch, getState) => {
     dispatch({
       type: UI_MOVE_TO_PANE,
-      index: i,
+      index,
       effect() {
-        const state = getState();
-        const rootGroupUid = state.termGroups.activeRootGroup;
-        const sortedSessionGroups = findChildSessions(state.termGroups.termGroups, rootGroupUid);
-        const uid = i > sortedSessionGroups.length ? null : (i === 9 ? sortedSessionGroups[sortedSessionGroups.length - 1] : sortedSessionGroups[i - 1]);
+        const { sessions, termGroups } = getState();
+        const rootGroupUid = termGroups.activeRootGroup;
+        const sortedSessionGroups = findChildSessions(termGroups.termGroups, rootGroupUid);
+        const uid = index > sortedSessionGroups.length
+          ? null
+          : (index === 9
+            ? sortedSessionGroups[sortedSessionGroups.length - 1]
+            : sortedSessionGroups[index - 1]);
         if (uid === null) {
-          debug('ignoring inexistent index', i);
+          debug('ignoring inexistent index', index);
           return;
         }
-        const nextSessionUid = state.termGroups.termGroups[uid].sessionUid;
-        if (state.sessions.activeUid === nextSessionUid) {
+        const nextSessionUid = termGroups.termGroups[uid].sessionUid;
+        if (sessions.activeUid === nextSessionUid) {
           debug('ignoring same uid');
         } else {
-          dispatch(setActiveSession(nextSessionUid));
+          if (doSwitch) {
+            const activeSessionUid = sessions.activeUid;
+            dispatch({
+              type: UI_SWITCH_SESSIONS,
+              from: activeSessionUid,
+              to: nextSessionUid,
+            });
+          } else {
+            dispatch(setActiveSession(nextSessionUid));
+          }
         }
       }
     });
   });
 };
 
-const onSwitchWithActiveSession = (dispatch) => (i, terms) => {
-  dispatch((dispatch, getState) => {
-    const state = getState();
-    const activeSessionUid = state.sessions.activeUid;
-    const rootGroupUid = state.termGroups.activeRootGroup;
-    const sortedSessionGroups = findChildSessions(state.termGroups.termGroups, rootGroupUid);
-    const uid = i > sortedSessionGroups.length ? null : (i === 9 ? sortedSessionGroups[sortedSessionGroups.length - 1] : sortedSessionGroups[i - 1]);
-    if (uid === null) {
-      debug('ignoring inexistent index', i);
-      return;
+const isValidNeighborFactory = (direction) => {
+  const isHorzontal = (direction === UI_MOVE_RIGHT_PANE || direction === UI_MOVE_LEFT_PANE);
+  const coord = isHorzontal ? 'x' : 'y';
+  const dimension = isHorzontal ? 'w' : 'h';
+  const focusPointCoord = isHorzontal ? 'y' : 'x';
+  const focusPointDimension = isHorzontal ? 'h' : 'w';
+  const invert = (direction === UI_MOVE_LEFT_PANE || direction === UI_MOVE_UP_PANE);
+  return (termGroup, candidate, focusPoint) => {
+    if (!candidate.sessionUid) {
+      return false;
     }
-    const nextSessionUid = state.termGroups.termGroups[uid].sessionUid;
-    if (state.sessions.activeUid === nextSessionUid) {
-      debug('ignoring same uid');
-      return;
-    }
-    dispatch({
-      type: UI_SWITCH_SESSIONS,
-      from: activeSessionUid,
-      to: nextSessionUid,
-    });
+    //debug('Testing candidate', candidate);
+    const first = invert ? candidate : termGroup;
+    const second = invert ? termGroup : candidate;
+    //debug(first.frame[coord], '+', first.frame[dimension], '-', second.frame[coord]);
+    return (first.frame[coord] + first.frame[dimension] - second.frame[coord] < Number.EPSILON)
+            && (first.frame[coord] + first.frame[dimension] - second.frame[coord] > -Number.EPSILON)
+            && (focusPoint[focusPointCoord] >= candidate.frame[focusPointCoord])
+            && (focusPoint[focusPointCoord] <= candidate.frame[focusPointCoord] + candidate.frame[focusPointDimension])
 
-    debug('Terms', terms);
+  }
+}
 
-  });
-};
-
-const onMoveToDirectionPane = (dispatch) => (type) => {
+const onMoveToDirectionPane = dispatch => (type, doSwitch) => {
   dispatch((dispatch, getState) => {
     dispatch({
       type,
       effect() {
-        const {sessions, termGroups} = getState();
+        const { sessions, termGroups, ui } = getState();
         const termGroup = findBySession(termGroups, sessions.activeUid);
         debug('Move Pane', type, termGroup.uid);
-        if (termGroup.parentUid === null) {
-          debug('ignoring move for single group');
-        } else {
-          let parentGroup = termGroups.termGroups[termGroup.parentUid];
-          let currentChildUid = termGroup.uid;
-          const moveDirection = (type === UI_MOVE_RIGHT_PANE || type === UI_MOVE_LEFT_PANE) ? DIRECTION.VERTICAL : DIRECTION.HORIZONTAL;
-          // looking for the first parent with a compatible direction.
-          while (parentGroup !== undefined && parentGroup.direction !== moveDirection) {
-            currentChildUid = parentGroup.uid;
-            parentGroup = parentGroup.parentUid ? termGroups.termGroups[parentGroup.parentUid] : undefined;
-          }
-          if (parentGroup) {
-            // remain in the same termGroup
-            debug('ParentGroup found', parentGroup.uid);
-            const index = getNeighborIndex(parentGroup.children, currentChildUid, type);
-            debug('index', index);
-            let target = termGroups.termGroups[parentGroup.children[index]];
-            // looking for the first child with a sessionUid (ie. not a container)
-            while (target && target.sessionUid === null && target.children.length) {
-              debug('No sessionUid in', target.uid);
-              target = termGroups.termGroups[target.children[0]];
-              debug('Testing', target.uid);
+        const focusPoint = (ui.paneNavigation && ui.paneNavigation.focusPoint)
+          ? ui.paneNavigation.focusPoint.asMutable()
+          : {
+            x: termGroup.frame.x + termGroup.frame.w / 2,
+            y: termGroup.frame.y + termGroup.frame.h / 2,
+          };
+
+        const isHorzontal = (type === UI_MOVE_RIGHT_PANE || type === UI_MOVE_LEFT_PANE);
+        const coord = isHorzontal ? 'x' : 'y';
+        const dimension = isHorzontal ? 'w' : 'h';
+        const focusPointCoord = isHorzontal ? 'y' : 'x';
+        const focusPointDimension = isHorzontal ? 'h' : 'w';
+        const invert = (type === UI_MOVE_LEFT_PANE || type === UI_MOVE_UP_PANE);
+
+        const nextTermGroup = Object.keys(termGroups.termGroups)
+          .map(uid => termGroups.termGroups[uid])
+          .find(candidate => {
+            if (!candidate.sessionUid) {
+              return false;
             }
-            if (target.sessionUid) {
-              dispatch(setActiveSession(target.sessionUid));
-            } else {
-              console.warn('No sessionUid found for', target.uid);
+            //debug('Testing candidate', candidate);
+            const first = invert ? candidate : termGroup;
+            const second = invert ? termGroup : candidate;
+            //debug(first.frame[coord], '+', first.frame[dimension], '-', second.frame[coord]);
+            return (first.frame[coord] + first.frame[dimension] - second.frame[coord] < Number.EPSILON)
+                    && (first.frame[coord] + first.frame[dimension] - second.frame[coord] > -Number.EPSILON)
+                    && (focusPoint[focusPointCoord] >= candidate.frame[focusPointCoord])
+                    && (focusPoint[focusPointCoord] <= candidate.frame[focusPointCoord] + candidate.frame[focusPointDimension])
+          });
+
+        debug('nextTermGroup', nextTermGroup);
+        if (nextTermGroup) {
+          if (doSwitch) {
+            const activeSessionUid = sessions.activeUid;
+            dispatch({
+              type: UI_SWITCH_SESSIONS,
+              from: activeSessionUid,
+              to: nextTermGroup.sessionUid,
+            });
+          } else {
+            focusPoint[coord] = nextTermGroup.frame[coord] + nextTermGroup.frame[dimension]/2;
+            // If next Pane border is included in current pane border, we can move opposite focusPoint coord accordly
+            if (nextTermGroup.frame[focusPointCoord] > termGroup.frame[focusPointCoord]
+              && nextTermGroup.frame[focusPointDimension] < termGroup.frame[focusPointDimension]) {
+              focusPoint[focusPointCoord] = nextTermGroup.frame[focusPointCoord] + nextTermGroup.frame[focusPointDimension]/2;
             }
+            dispatch(setActiveSession(nextTermGroup.sessionUid, focusPoint));
           }
         }
       }
@@ -270,6 +299,19 @@ exports.reduceTermGroups = (state, action) => {
   return state;
 }
 
+exports.reduceUI = (state, action) => {
+  switch (action.type) {
+    case SESSION_SET_ACTIVE:
+      if (action.focusPoint) {
+        state = state.setIn(['paneNavigation', 'focusPoint'], action.focusPoint);
+      } else {
+        state = state.without('paneNavigation');
+      }
+      break;
+  }
+  return state;
+}
+
 exports.mapTermsState = (state, map) => {
   const result = getSortedSessionGroups(state.termGroups.termGroups);
   return Object.assign({}, map, {sortedSessionGroups: result});
@@ -292,13 +334,13 @@ exports.getTermProps = (uid, parentProps, props) => {
   } else if (index === sortedSessionGroups.length - 1) {
     termShorcutNum = 9;
   }
-  debug('Setting Shortcutnum', termShorcutNum, 'to Term', uid);
+  //debug('Setting Shortcutnum', termShorcutNum, 'to Term', uid);
   return Object.assign({}, props, {termShorcutNum});
 };
 
 exports.mapTermsDispatch = (dispatch, map) => {
   map.onMoveToPane = onMoveToPane(dispatch);
-  map.onSwitchWithActiveSession = onSwitchWithActiveSession(dispatch);
+  //map.onSwitchWithActiveSession = onSwitchWithActiveSession(dispatch);
   map.onMoveToDirectionPane = onMoveToDirectionPane(dispatch);
   return map;
 }
@@ -336,7 +378,7 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
 
       ['1','2','3','4','5','6','7','8','9'].forEach(num => {
         let shortcut = JUMP_KEYS + `+${num}`;
-        debug('Add shortcut', shortcut);
+        //debug('Add shortcut', shortcut);
         keys.bind(
           shortcut,
           (e) => {
@@ -345,12 +387,12 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
             this.reattachKeyListner();
           }
         );
-        shortcut = SWITCH_KEYS + `+${num}`;
-        debug('Add shortcut', shortcut);
+        shortcut = `${SWITCH_MODIFIER} + ${shortcut}`;
+        //debug('Add shortcut', shortcut);
         keys.bind(
           shortcut,
           (e) => {
-            this.props.onSwitchWithActiveSession(num, this.terms);
+            this.props.onMoveToPane(num, true);
             e.preventDefault();
             this.reattachKeyListner();
           }
@@ -361,7 +403,18 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
         keys.bind(
           NAV_KEYS[direction],
           (e) => {
-            this.props.onMoveToDirectionPane(direction)
+            this.props.onMoveToDirectionPane(direction);
+            e.preventDefault();
+            this.reattachKeyListner();
+          }
+        );
+
+        keys.bind(
+          `${SWITCH_MODIFIER}+` + NAV_KEYS[direction],
+          (e) => {
+            this.props.onMoveToDirectionPane(direction, true);
+            e.preventDefault();
+            this.reattachKeyListner();
           }
         );
       });
@@ -409,7 +462,7 @@ exports.decorateTerm = (Term, { React, notify }) => {
             fontSize: '10px'
           }
         },
-        this.props.termShorcutNum > 0 ? '^⌘' + this.props.termShorcutNum : ''
+        this.props.termShorcutNum > 0 ? '^⌥' + this.props.termShorcutNum : ''
       );
       const customChildrenBefore = this.props.customChildrenBefore
         ? Array.from(this.props.customChildrenBefore).concat(myCustomChildrenBefore)
