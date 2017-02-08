@@ -1,6 +1,6 @@
 const Mousetrap = require('mousetrap');
 
-let debug_enabled_ = true;
+let debug_enabled_ = false;
 
 const debug = function () {
   if (debug_enabled_){
