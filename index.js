@@ -236,13 +236,13 @@ const updateChildrenFrames = (state, groupUid) => {
   debug('updateChildrenFrames: call on', groupUid);
   const group = state.termGroups[groupUid];
 
-  if (group.sessionUid && group.parent) {
+  if (group.sessionUid && group.parentUid) {
     debug('updateChildrenFrames: sessionUid found, skipping', group.sessionUid);
     return state;
   }
   if (group.children.length === 0) {
     debug('updateChildrenFrames: no children found, skipping', group.sessionUid);
-    if (!group.parent) {
+    if (!group.parentUid) {
       state = state.setIn(['termGroups', group.uid, 'frame'], ROOT_FRAME);
     }
     return state;
@@ -299,12 +299,12 @@ exports.reduceTermGroups = (state, action) => {
       if (!state.activeRootGroup) {
         break;
       }
-      let rootGroup = state.termGroups[state.activeRootGroup];
-      if (!rootGroup) {
+      let rootGroupUid = state.activeRootGroup;
+      if (!state.termGroups[rootGroupUid]) {
         // This should not happen but it's a protection: See https://github.com/chabou/hyper-pane/issues/3
-        rootGroup = state.activeTermGroup;
+        rootGroupUid = state.activeTermGroup;
       }
-      state = updateChildrenFrames(state, rootGroup);
+      state = updateChildrenFrames(state, rootGroupUid);
       break;
     }
   }
