@@ -1,6 +1,6 @@
 {
   "name": "hyper-pane",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Extension for Hyper.app to enhance pane navigation.",
   "main": "index.js",
   "scripts": {
