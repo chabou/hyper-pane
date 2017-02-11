@@ -417,8 +417,8 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
       const document = term.getTermDocument();
       const keys = new Mousetrap(document);
 
-      const jump_prefix = config.hotkeys.jump_prefix;
-      const permutation_modifier = config.hotkeys.permutation_modifier;
+      const jump_prefix = config.hotkeys.jump_prefix.toLowerCase();
+      const permutation_modifier = config.hotkeys.permutation_modifier.toLowerCase();
       if (jump_prefix && jump_prefix.length) {
         ['1','2','3','4','5','6','7','8','9'].forEach(num => {
           let shortcut = jump_prefix+ `+${num}`;
@@ -447,7 +447,7 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
       }
 
       Object.keys(config.hotkeys.navigation).forEach(direction => {
-        const key = config.hotkeys.navigation[direction];
+        const key = config.hotkeys.navigation[direction].toLowerCase();
         const actionType = navigationActionMap[direction];
         if (key && key.length && actionType && actionType.length) {
           keys.bind(

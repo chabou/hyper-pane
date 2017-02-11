@@ -17,7 +17,7 @@ plugins: [
 
 ## Configuration
 
-Default configuration:
+### Default configuration:
 ``` js
 module.exports = {
   config: {
@@ -47,16 +47,23 @@ module.exports = {
   //...
 };
 ```
+### Supported keys
+Supported keys are the same than for [Mousetrap](https://craig.is/killing/mice).
 
+For modifier keys you can use `shift`, `ctrl`, `alt`, or `meta`. You can substitute `option` for `alt` and `command` for `meta`.
+
+Other special keys are `backspace`, `tab`, `enter`, `return`, `capslock`, `esc`, `escape`, `space`, `pageup`, `pagedown`, `end`, `home`, `left`, `up`, `right`, `down`, `ins`, `del`, and `plus`.
+
+Any other key you should be able to reference by name like `a`, `/`, `$`, `*`, or `=`.  
 
 ## Usage
 ### Navigation with arrows
 
-Use `Ctrl+Alt+<Up,Down,Left,Right>` (or your configured hotkeys) to navigate to a neighbor pane.
+Use `ctrl+alt+<Up,Down,Left,Right>` (or your configured hotkeys) to navigate to a neighbor pane.
 
 ### Jump with digit
 
-Use `Ctrl+Alt+<1-9>` (or your configured hotkeys) to jump directly to a numbered pane.
+Use `ctrl+alt+<1-9>` (or your configured hotkeys) to jump directly to a numbered pane.
 Panes are ordered "first child descendent" and `9` is reserved to the last pane.
 
 Hotkey indicators are displayed on top left corner of each pane from 2 panes opened.
@@ -64,5 +71,5 @@ You can change its content, its style or hide them completly.
 
 ### Pane permutation
 
-Adding `Shift` key (or your configured key) to previous hotkeys cause a pane switching.
+Adding `shift` key (or your configured key) to previous hotkeys cause a pane switching.
 
