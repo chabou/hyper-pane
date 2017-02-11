@@ -1,13 +1,36 @@
 const Mousetrap = require('mousetrap');
+const merge = require('lodash.merge');
 
-let debug_enabled_ = false;
+const defaultConfig = {
+  debug: false,
+  hotkeys: {
+    navigation: {
+      up: 'ctrl+alt+up',
+      down: 'ctrl+alt+down',
+      left: 'ctrl+alt+left',
+      right: 'ctrl+alt+right'
+    },
+    jump_prefix: 'ctrl+alt',
+    permutation_modifier: 'shift',
+  },
+  showIndicators: true,
+  indicatorPrefix: '^⌥',
+  indicatorStyle: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    fontSize: '10px'
+  },
+};
+
+let config = defaultConfig;
 
 const debug = function () {
-  if (debug_enabled_){
+  if (config.debug){
     [].unshift.call(arguments, '|HYPER-PANE|');
     console.log.apply(this, arguments);
   }
-}
+};
 
 /**
  * Duplicate Hyper code
@@ -73,15 +96,12 @@ const UI_MOVE_LEFT_PANE = 'UI_MOVE_LEFT_PANE';
 const UI_MOVE_RIGHT_PANE = 'UI_MOVE_RIGHT_PANE';
 const UI_SWITCH_SESSIONS = 'UI_SWITCH_SESSIONS';
 
-// Keys
-const JUMP_KEYS = 'ctrl+alt';
-const SWITCH_MODIFIER = 'shift';
-const NAV_KEYS = {
-  UI_MOVE_UP_PANE: 'ctrl+alt+up',
-  UI_MOVE_DOWN_PANE: 'ctrl+alt+down',
-  UI_MOVE_LEFT_PANE: 'ctrl+alt+left',
-  UI_MOVE_RIGHT_PANE: 'ctrl+alt+right'
-};
+const navigationActionMap = {
+  up: 'UI_MOVE_UP_PANE',
+  down: 'UI_MOVE_DOWN_PANE',
+  left: 'UI_MOVE_LEFT_PANE',
+  right: 'UI_MOVE_RIGHT_PANE'
+}
 
 // Others
 const ROOT_FRAME = {
@@ -274,6 +294,18 @@ const updateChildrenFrames = (state, groupUid) => {
  * Plugin bindings
  */
 
+ exports.middleware = store => next => action => {
+  switch (action.type) {
+    case 'CONFIG_LOAD':
+    case 'CONFIG_RELOAD':
+      if (action.config.paneNavigation) {
+        config = merge(JSON.parse(JSON.stringify(defaultConfig)), action.config.paneNavigation);
+      }
+      break;
+  }
+  return next(action);
+}
+
 exports.reduceTermGroups = (state, action) => {
 
   switch (action.type) {
@@ -385,47 +417,58 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
       const document = term.getTermDocument();
       const keys = new Mousetrap(document);
 
-      ['1','2','3','4','5','6','7','8','9'].forEach(num => {
-        let shortcut = JUMP_KEYS + `+${num}`;
-        //debug('Add shortcut', shortcut);
-        keys.bind(
-          shortcut,
-          (e) => {
-            this.props.onMoveToPane(num);
-            e.preventDefault();
-            this.reattachKeyListner();
+      const jump_prefix = config.hotkeys.jump_prefix;
+      const permutation_modifier = config.hotkeys.permutation_modifier;
+      if (jump_prefix && jump_prefix.length) {
+        ['1','2','3','4','5','6','7','8','9'].forEach(num => {
+          let shortcut = jump_prefix+ `+${num}`;
+          //debug('Add shortcut', shortcut);
+          keys.bind(
+            shortcut,
+            (e) => {
+              this.props.onMoveToPane(num);
+              e.preventDefault();
+              this.reattachKeyListner();
+            }
+          );
+          if (permutation_modifier && permutation_modifier.length) {
+            shortcut = `${permutation_modifier} + ${shortcut}`;
+            //debug('Add shortcut', shortcut);
+            keys.bind(
+              shortcut,
+              (e) => {
+                this.props.onMoveToPane(num, true);
+                e.preventDefault();
+                this.reattachKeyListner();
+              }
+            );
           }
-        );
-        shortcut = `${SWITCH_MODIFIER} + ${shortcut}`;
-        //debug('Add shortcut', shortcut);
-        keys.bind(
-          shortcut,
-          (e) => {
-            this.props.onMoveToPane(num, true);
-            e.preventDefault();
-            this.reattachKeyListner();
-          }
-        );
-      });
+        });
+      }
 
-      Object.keys(NAV_KEYS).forEach(direction => {
-        keys.bind(
-          NAV_KEYS[direction],
-          (e) => {
-            this.props.onMoveToDirectionPane(direction);
-            e.preventDefault();
-            this.reattachKeyListner();
+      Object.keys(config.hotkeys.navigation).forEach(direction => {
+        const key = config.hotkeys.navigation[direction];
+        const actionType = navigationActionMap[direction];
+        if (key && key.length && actionType && actionType.length) {
+          keys.bind(
+            key,
+            (e) => {
+              this.props.onMoveToDirectionPane(actionType);
+              e.preventDefault();
+              this.reattachKeyListner();
+            }
+          );
+          if (permutation_modifier && permutation_modifier.length) {
+            keys.bind(
+              `${permutation_modifier}+` + key,
+              (e) => {
+                this.props.onMoveToDirectionPane(actionType, true);
+                e.preventDefault();
+                this.reattachKeyListner();
+              }
+            );
           }
-        );
-
-        keys.bind(
-          `${SWITCH_MODIFIER}+` + NAV_KEYS[direction],
-          (e) => {
-            this.props.onMoveToDirectionPane(direction, true);
-            e.preventDefault();
-            this.reattachKeyListner();
-          }
-        );
+        }
       });
       this.keys = keys;
     }
@@ -460,17 +503,15 @@ exports.decorateTerm = (Term, { React, notify }) => {
         super(props, context);
     }
     render () {
+      if (!config.showIndicators) {
+        return React.createElement(Term, this.props);
+      }
       const myCustomChildrenBefore = React.createElement(
         'div',
         {
-          style: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            fontSize: '10px'
-          }
+          style: config.indicatorStyle
         },
-        this.props.termShorcutNum > 0 ? '^⌥' + this.props.termShorcutNum : ''
+        this.props.termShorcutNum > 0 ? config.indicatorPrefix + this.props.termShorcutNum : ''
       );
       const customChildrenBefore = this.props.customChildrenBefore
         ? Array.from(this.props.customChildrenBefore).concat(myCustomChildrenBefore)

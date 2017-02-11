@@ -1,7 +1,7 @@
 {
   "name": "hyper-pane",
-  "version": "0.1.2",
-  "description": "Extension for Hyper.app to enhance pane navigation.",
+  "version": "1.0.0",
+  "description": "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows or jump directly to a specific pane with digit.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -47,6 +47,7 @@
     ]
   },
   "dependencies": {
+    "lodash.merge": "^4.6.0",
     "mousetrap": "^1.6.0"
   }
 }
