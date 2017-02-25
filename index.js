@@ -254,7 +254,15 @@ const onMoveToDirectionPane = dispatch => (type, doSwitch) => {
 
 const updateChildrenFrames = (state, groupUid) => {
   debug('updateChildrenFrames: call on', groupUid);
+  if (!groupUid) {
+    debug('WARNING: undefined groupUid');
+    return state;
+  }
   const group = state.termGroups[groupUid];
+  if (!group) {
+    debug('WARNING: undefined group for groupUid', groupUid);
+    return state;
+  }
 
   if (group.sessionUid && group.parentUid) {
     debug('updateChildrenFrames: sessionUid found, skipping', group.sessionUid);
