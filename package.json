@@ -1,7 +1,7 @@
 {
   "name": "hyper-pane",
   "version": "1.1.0",
-  "description": "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows or jump directly to a specific pane with digit.",
+  "description": "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit or change focus on mouse hover.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
