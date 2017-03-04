@@ -302,7 +302,7 @@ const updateChildrenFrames = (state, groupUid) => {
  * Plugin bindings
  */
 
- exports.middleware = store => next => action => {
+exports.middleware = store => next => action => {
   switch (action.type) {
     case 'CONFIG_LOAD':
     case 'CONFIG_RELOAD':
@@ -509,7 +509,26 @@ exports.decorateTerm = (Term, { React, notify }) => {
   return class extends React.Component {
     constructor(props, context) {
         super(props, context);
+        this.onTermRef = this.onTermRef.bind(this);
+        this.onMouseEnter = this.onMouseEnter.bind(this);
     }
+
+    onMouseEnter(e) {
+      debug('Mouse is hover Term', this.term);
+      if (config.focusOnMouseHover && !this.term.props.isTermActive) {
+        this.term.props.onActive(this.term.props.uid);
+      }
+    }
+
+    componentDidMount() {
+      const doc = this.term.getTermDocument();
+      doc.body.onmouseenter = this.onMouseEnter;
+    }
+
+    onTermRef(term) {
+      this.term = term;
+    }
+
     render () {
       if (!config.showIndicators) {
         return React.createElement(Term, this.props);
@@ -524,7 +543,7 @@ exports.decorateTerm = (Term, { React, notify }) => {
       const customChildrenBefore = this.props.customChildrenBefore
         ? Array.from(this.props.customChildrenBefore).concat(myCustomChildrenBefore)
         : myCustomChildrenBefore;
-      return React.createElement(Term, Object.assign({}, this.props, {customChildrenBefore}));
+      return React.createElement(Term, Object.assign({}, this.props, {customChildrenBefore, ref: this.onTermRef}));
     }
   }
 }

@@ -1,5 +1,5 @@
 # hyper-pane
-Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows or jump directly to a specific pane with digit.
+Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit or change focus on mouse hover.
 
 ![hyper-pane](https://cloud.githubusercontent.com/assets/4137761/22717106/844a9c5c-ed99-11e6-8e88-8c71a8cbbd5a.gif)
 
@@ -42,6 +42,7 @@ module.exports = {
         left: 0,
         fontSize: '10px'
       },
+      focusOnMouseHover: false
     }
   }
   //...
@@ -72,4 +73,8 @@ You can change its content, its style or hide them completly.
 ### Pane permutation
 
 Adding `shift` key (or your configured key) to previous hotkeys cause a pane switching.
+
+### Focus on mouse hover
+
+Set `config.paneNavigation.focusOnMouseHover` to `true` and focus will change when mouse cursor enters into an another pane.
 
