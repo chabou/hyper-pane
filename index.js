@@ -521,17 +521,23 @@ exports.decorateTerm = (Term, { React, notify }) => {
     }
 
     componentDidMount() {
+      debug('Attach mouse handler');
+      if (!this.term) {
+        debug('No term ref');
+        return;
+      }
       const doc = this.term.getTermDocument();
       doc.body.onmouseenter = this.onMouseEnter;
     }
 
     onTermRef(term) {
+      debug('Keep term ref');
       this.term = term;
     }
 
     render () {
       if (!config.showIndicators) {
-        return React.createElement(Term, this.props);
+        return React.createElement(Term, Object.assign({}, this.props, {ref: this.onTermRef}));
       }
       const myCustomChildrenBefore = React.createElement(
         'div',
