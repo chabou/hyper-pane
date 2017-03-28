@@ -367,12 +367,18 @@ exports.mapTermsState = (state, map) => {
 };
 
 exports.getTermGroupProps = (uid, parentProps, props) => {
-  const { sortedSessionGroups, onMoveToPane, onSwitchWithActiveSession } = parentProps;
-  return Object.assign({}, props, {sortedSessionGroups: sortedSessionGroups[uid]});
+  const { sortedSessionGroups, activeRootGroup } = parentProps;
+  if (!sortedSessionGroups[activeRootGroup]) {
+    return props;
+  }
+  return Object.assign(props, {sortedSessionGroups: sortedSessionGroups[activeRootGroup]});
 };
 
 exports.getTermProps = (uid, parentProps, props) => {
   const { termGroup, sortedSessionGroups } = parentProps;
+  if (!sortedSessionGroups) {
+    return props;
+  }
   const index = sortedSessionGroups.indexOf(termGroup.uid);
   // Only 1-9 keys are used and if there is more than 9 terms, number 9 is reserved to the last term
   let termShorcutNum = 0;
@@ -403,6 +409,9 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
     }
 
     handleFocusActive() {
+      if (!this.terms.getActiveTerm) {
+        return;
+      }
       const term = this.terms.getActiveTerm();
       if (term) {
         term.focus();
@@ -418,6 +427,9 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
     }
 
     attachKeyListeners() {
+      if (!this.terms.getActiveTerm) {
+        return;
+      }
       const term = this.terms.getActiveTerm();
       if (!term) {
         return;
@@ -509,7 +521,7 @@ exports.decorateTerm = (Term, { React, notify }) => {
   return class extends React.Component {
     constructor(props, context) {
         super(props, context);
-        this.onTermRef = this.onTermRef.bind(this);
+        this.onDecorated = this.onDecorated.bind(this);
         this.onMouseEnter = this.onMouseEnter.bind(this);
     }
 
@@ -520,24 +532,23 @@ exports.decorateTerm = (Term, { React, notify }) => {
       }
     }
 
-    componentDidMount() {
-      debug('Attach mouse handler');
-      if (!this.term) {
-        debug('No term ref');
-        return;
-      }
-      const doc = this.term.getTermDocument();
-      doc.body.onmouseenter = this.onMouseEnter;
-    }
-
-    onTermRef(term) {
+    onDecorated(term) {
       debug('Keep term ref');
       this.term = term;
+      if (this.term && this.term.getTermDocument) {
+        const doc = this.term.getTermDocument();
+        doc.body.onmouseenter = this.onMouseEnter;
+      }
     }
 
     render () {
+      const props = {
+        ref: this.onDecorated,
+        onDecorated: this.onDecorated
+      };
+
       if (!config.showIndicators) {
-        return React.createElement(Term, Object.assign({}, this.props, {ref: this.onTermRef}));
+        return React.createElement(Term, Object.assign({}, this.props, props));
       }
       const myCustomChildrenBefore = React.createElement(
         'div',
@@ -549,7 +560,8 @@ exports.decorateTerm = (Term, { React, notify }) => {
       const customChildrenBefore = this.props.customChildrenBefore
         ? Array.from(this.props.customChildrenBefore).concat(myCustomChildrenBefore)
         : myCustomChildrenBefore;
-      return React.createElement(Term, Object.assign({}, this.props, {customChildrenBefore, ref: this.onTermRef}));
+      props.customChildrenBefore = customChildrenBefore;
+      return React.createElement(Term, Object.assign({}, this.props, props));
     }
   }
 }
