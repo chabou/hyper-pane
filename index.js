@@ -405,6 +405,7 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
     constructor(props, context) {
       super(props, context);
       this.handleFocusActive = this.handleFocusActive.bind(this);
+      this.onDecorated = this.onDecorated.bind(this);
       this.onTermsRef = this.onTermsRef.bind(this);
     }
 
@@ -493,6 +494,14 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
       this.keys = keys;
     }
 
+    onDecorated(terms) {
+      debug('onDecorated', terms);
+      this.terms = terms;
+      if (this.props.onDecorated) {
+        this.props.onDecorated(terms);
+      }
+    }
+
     onTermsRef(terms) {
       this.terms = terms;
     }
@@ -511,6 +520,7 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
 
     render() {
       return React.createElement(Terms, Object.assign({}, this.props, {
+        onDecorated: this.onDecorated,
         ref: this.onTermsRef
       }));
     }
@@ -522,6 +532,7 @@ exports.decorateTerm = (Term, { React, notify }) => {
     constructor(props, context) {
         super(props, context);
         this.onDecorated = this.onDecorated.bind(this);
+        this.onTermRef = this.onTermRef.bind(this);
         this.onMouseEnter = this.onMouseEnter.bind(this);
     }
 
@@ -539,11 +550,23 @@ exports.decorateTerm = (Term, { React, notify }) => {
         const doc = this.term.getTermDocument();
         doc.body.onmouseenter = this.onMouseEnter;
       }
+      if (this.props.onDecorated) {
+        this.onDecorated(term);
+      }
+    }
+
+    onTermRef(term) {
+      debug('Keep term ref');
+      this.term = term;
+      if (this.term && this.term.getTermDocument) {
+        const doc = this.term.getTermDocument();
+        doc.body.onmouseenter = this.onMouseEnter;
+      }
     }
 
     render () {
       const props = {
-        ref: this.onDecorated,
+        ref: this.onTermRef,
         onDecorated: this.onDecorated
       };
 
