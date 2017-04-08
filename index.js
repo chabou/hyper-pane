@@ -12,6 +12,7 @@ const defaultConfig = {
     },
     jump_prefix: 'ctrl+alt',
     permutation_modifier: 'shift',
+    maximize: 'meta+enter'
   },
   showIndicators: true,
   indicatorPrefix: '^⌥',
@@ -298,6 +299,22 @@ const updateChildrenFrames = (state, groupUid) => {
   return state;
 };
 
+const onMaximizePane = dispatch => () => {
+  debug('onMaximizePane');
+  dispatch((dispatch, getState) => {
+    const { sessions, termGroups } = getState();
+    const termGroup = findBySession(termGroups, sessions.activeUid);
+    if (!termGroup) {
+      debug('No termGroup found for active Session');
+      return;
+    }
+    dispatch({
+      type: 'UI_MAXIMIZE_PANE',
+      uid: termGroup.uid,
+    });
+  });
+};
+
 /**
  * Plugin bindings
  */
@@ -310,6 +327,17 @@ exports.middleware = store => next => action => {
         config = merge(JSON.parse(JSON.stringify(defaultConfig)), action.config.paneNavigation);
       }
       break;
+    case 'SESSION_ADD': {
+      const { termGroups, sessions } = store.getState();
+      if (termGroups.maximizeSave && termGroups.maximizeSave[termGroups.activeRootGroup]) {
+        // Current Pane is maximized, restore it before adding a potential split
+        store.dispatch({
+          type: 'UI_MAXIMIZE_PANE',
+          uid: termGroups.activeRootGroup
+        })
+      }
+    }
+      break;
   }
   return next(action);
 }
@@ -317,6 +345,34 @@ exports.middleware = store => next => action => {
 exports.reduceTermGroups = (state, action) => {
 
   switch (action.type) {
+    case 'UI_MAXIMIZE_PANE': {
+      if (!state.maximizeSave || !state.maximizeSave[action.uid]) {
+        // Maximize
+        debug('Maximizing', action.uid);
+        const { parentUid, sessionUid } = state.termGroups[action.uid];
+        state = state.setIn(['maximizeSave', action.uid], {
+          'activeRootGroup': state.activeRootGroup,
+          parentUid,
+          sessionUid
+        });
+        state = state.setIn(['termGroups', action.uid, 'parentUid'], null);
+        state = state.setIn(['termGroups', state.activeRootGroup, 'parentUid'], 'fakeParent'); // fake parentUid to prevent getRootGroups selector to include it
+        state = state.setIn(['activeSessions', action.uid], sessionUid);
+        state = state.set('activeSessions', state.activeSessions.without(state.activeRootGroup));
+        state = state.set('activeRootGroup', action.uid);
+      } else {
+        // Restore
+        debug('Restoring', action.uid);
+        const { activeRootGroup, parentUid, sessionUid } = state.maximizeSave[action.uid];
+        state = state.setIn(['termGroups', action.uid, 'parentUid'], parentUid);
+        state = state.setIn(['termGroups', activeRootGroup, 'parentUid'], null);
+        state = state.setIn(['activeSessions', activeRootGroup], sessionUid);
+        state = state.set('activeSessions', state.activeSessions.without(action.uid));
+        state = state.set('activeRootGroup', activeRootGroup);
+        state = state.set('maximizeSave', state.maximizeSave.without(action.uid));
+      }
+    }
+      break;
     case 'UI_SWITCH_SESSIONS':
       const fromTermGroupUid = findBySession(state, action.from).uid;
       const toTermGroupUid = findBySession(state, action.to).uid;
@@ -397,6 +453,7 @@ exports.mapTermsDispatch = (dispatch, map) => {
   map.onMoveToPane = onMoveToPane(dispatch);
   //map.onSwitchWithActiveSession = onSwitchWithActiveSession(dispatch);
   map.onMoveToDirectionPane = onMoveToDirectionPane(dispatch);
+  map.onMaximizePane = onMaximizePane(dispatch);
   return map;
 }
 
@@ -428,6 +485,7 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
     }
 
     attachKeyListeners() {
+      debug('attachKeyListeners', this.terms.getActiveTerm);
       if (!this.terms.getActiveTerm) {
         return;
       }
@@ -491,6 +549,19 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
           }
         }
       });
+
+      const maximize = config.hotkeys.maximize ? config.hotkeys.maximize.toLowerCase() : '';
+      if (maximize.length) {
+        keys.bind(
+          maximize,
+          (e) => {
+            this.props.onMaximizePane();
+            e.preventDefault();
+            this.reattachKeyListner();
+          }
+        );
+      }
+
       this.keys = keys;
     }
 
