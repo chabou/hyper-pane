@@ -213,7 +213,9 @@ const onMoveToDirectionPane = dispatch => (type, doSwitch) => {
         const focusPointDimension = isHorzontal ? 'h' : 'w';
         const invert = (type === UI_MOVE_LEFT_PANE || type === UI_MOVE_UP_PANE);
 
-        const nextTermGroup = Object.keys(termGroups.termGroups)
+        const rootGroupUid = termGroups.activeRootGroup;
+        const sortedSessionGroups = findChildSessions(termGroups.termGroups, rootGroupUid);
+        const nextTermGroup = sortedSessionGroups
           .map(uid => termGroups.termGroups[uid])
           .find(candidate => {
             if (!candidate.sessionUid) {
