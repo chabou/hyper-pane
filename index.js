@@ -12,7 +12,7 @@ const defaultConfig = {
     },
     jump_prefix: 'ctrl+alt',
     permutation_modifier: 'shift',
-    maximize: 'meta+enter'
+    maximize: 'cmd+enter'
   },
   showIndicators: true,
   indicatorPrefix: '^⌥',
@@ -22,6 +22,7 @@ const defaultConfig = {
     left: 0,
     fontSize: '10px'
   },
+  focusOnMouseHover: false
 };
 
 let config = defaultConfig;
@@ -459,6 +460,49 @@ exports.mapTermsDispatch = (dispatch, map) => {
   return map;
 }
 
+exports.extendKeymaps = () => {
+  const keys = {};
+  const jump_prefix = config.hotkeys.jump_prefix ? config.hotkeys.jump_prefix.toLowerCase() : '';
+  const permutation_modifier = config.hotkeys.permutation_modifier ? config.hotkeys.permutation_modifier.toLowerCase() : '';
+  if (jump_prefix && jump_prefix.length) {
+    ['1','2','3','4','5','6','7','8','9'].forEach(num => {
+      let shortcut = `${jump_prefix}+${num}`;
+      let name = `pane:move_${num}`
+      keys[name] = shortcut;
+      if (permutation_modifier && permutation_modifier.length) {
+        shortcut = `${permutation_modifier}+${shortcut}`;
+        name = `pane:switch_${num}`
+        keys[name] = shortcut;
+      }
+    });
+  }
+
+  Object.keys(config.hotkeys.navigation).forEach(direction => {
+    const key = config.hotkeys.navigation[direction].toLowerCase();
+    const actionType = navigationActionMap[direction];
+    if (key && key.length && actionType && actionType.length) {
+      shortcut = key;
+      name = `pane:move_${direction}`;
+      keys[name] = shortcut;
+      if (permutation_modifier && permutation_modifier.length) {
+        shortcut = `${permutation_modifier}+${key}`
+        name = `pane:switch_${direction}`
+        keys[name] = shortcut;
+      }
+    }
+  });
+
+  const maximize = config.hotkeys.maximize ? config.hotkeys.maximize.toLowerCase() : '';
+  if (maximize.length) {
+    shortcut = maximize;
+    name = 'pane:maximize';
+    keys[name] = shortcut;
+  }
+
+  debug('Extend keymaps with', keys);
+  return keys;
+}
+
 exports.decorateTerms = (Terms, { React, notify, Notification }) => {
   return class extends React.Component {
     constructor(props, context) {
@@ -477,93 +521,54 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
       }
     }
 
-    reattachKeyListner() {
-      if (this.keys) {
-        this.keys.reset();
-      }
-      this.handleFocusActive();
-      this.attachKeyListeners();
-    }
-
-    attachKeyListeners() {
-      debug('attachKeyListeners', this.terms.getActiveTerm);
-      if (!this.terms.getActiveTerm) {
-        return;
-      }
-      const term = this.terms.getActiveTerm();
-      if (!term) {
-        return;
-      }
-      const document = term.getTermDocument();
-      const keys = new Mousetrap(document);
-
-      const jump_prefix = config.hotkeys.jump_prefix ? config.hotkeys.jump_prefix.toLowerCase() : '';
-      const permutation_modifier = config.hotkeys.permutation_modifier ? config.hotkeys.permutation_modifier.toLowerCase() : '';
-      if (jump_prefix && jump_prefix.length) {
-        ['1','2','3','4','5','6','7','8','9'].forEach(num => {
-          let shortcut = jump_prefix+ `+${num}`;
-          //debug('Add shortcut', shortcut);
-          keys.bind(
-            shortcut,
-            (e) => {
-              this.props.onMoveToPane(num);
-              e.preventDefault();
-              this.reattachKeyListner();
-            }
-          );
-          if (permutation_modifier && permutation_modifier.length) {
-            shortcut = `${permutation_modifier} + ${shortcut}`;
-            //debug('Add shortcut', shortcut);
-            keys.bind(
-              shortcut,
-              (e) => {
-                this.props.onMoveToPane(num, true);
-                e.preventDefault();
-                this.reattachKeyListner();
-              }
-            );
-          }
-        });
-      }
-
-      Object.keys(config.hotkeys.navigation).forEach(direction => {
-        const key = config.hotkeys.navigation[direction].toLowerCase();
-        const actionType = navigationActionMap[direction];
-        if (key && key.length && actionType && actionType.length) {
-          keys.bind(
-            key,
-            (e) => {
-              this.props.onMoveToDirectionPane(actionType);
-              e.preventDefault();
-              this.reattachKeyListner();
-            }
-          );
-          if (permutation_modifier && permutation_modifier.length) {
-            keys.bind(
-              `${permutation_modifier}+` + key,
-              (e) => {
-                this.props.onMoveToDirectionPane(actionType, true);
-                e.preventDefault();
-                this.reattachKeyListner();
-              }
-            );
-          }
+    generateCommands() {
+      let name;
+      let handler;
+      let commands = ['1','2','3','4','5','6','7','8','9'].reduce((commands, num) => {
+        name = `pane:move_${num}`;
+        handler = e => {
+          this.props.onMoveToPane(num);
+          e.preventDefault();
         }
-      });
+        commands[name] = handler;
 
-      const maximize = config.hotkeys.maximize ? config.hotkeys.maximize.toLowerCase() : '';
-      if (maximize.length) {
-        keys.bind(
-          maximize,
-          (e) => {
-            this.props.onMaximizePane();
-            e.preventDefault();
-            this.reattachKeyListner();
-          }
-        );
+        name = `pane:switch_${num}`;
+        handler = e => {
+          this.props.onMoveToPane(num, true);
+          e.preventDefault();
+        }
+        commands[name] = handler;
+
+        return commands;
+      }, {});
+
+      commands = Object.keys(navigationActionMap).reduce((commands, direction) => {
+        const actionType = navigationActionMap[direction];
+        name = `pane:move_${direction}`;
+        handler = e => {
+          this.props.onMoveToDirectionPane(actionType);
+          e.preventDefault();
+        }
+        commands[name] = handler;
+
+        name = `pane:switch_${direction}`;
+        handler = e => {
+          this.props.onMoveToDirectionPane(actionType, true);
+          e.preventDefault();
+        }
+        commands[name] = handler;
+        
+        return commands;
+      }, commands)
+      
+      name = 'pane:maximize';
+      handler = e => {
+        this.props.onMaximizePane();
+        e.preventDefault();
       }
+      commands[name] = handler;
 
-      this.keys = keys;
+      return commands;
     }
 
     onDecorated(terms) {
@@ -572,18 +577,7 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
       if (this.props.onDecorated) {
         this.props.onDecorated(terms);
       }
-    }
-
-    componentDidUpdate(prev) {
-      if (prev.activeSession !== this.props.activeSession) {
-        this.reattachKeyListner();
-      }
-    }
-
-    componentWillUnmount() {
-      if (this.keys) {
-        this.keys.reset();
-      }
+      this.terms.registerCommands(this.generateCommands());
     }
 
     render() {
@@ -612,9 +606,14 @@ exports.decorateTerm = (Term, { React, notify }) => {
     onDecorated(term) {
       debug('Keep term ref');
       this.term = term;
-      if (this.term && this.term.getTermDocument) {
+      if (this.term && this.term.termRef) {
+        this.term.termRef.onmouseenter = this.onMouseEnter;
+      } else if (this.term && this.term.getTermDocument) {
+        // Backward compatibility
         const doc = this.term.getTermDocument();
-        doc.body.onmouseenter = this.onMouseEnter;
+        if (doc && doc.body) {
+          doc.body.onmouseenter = this.onMouseEnter;
+        }
       }
       if (this.props.onDecorated) {
         this.onDecorated(term);
