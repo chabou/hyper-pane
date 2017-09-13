@@ -1,4 +1,3 @@
-const Mousetrap = require('mousetrap');
 const merge = require('lodash.merge');
 
 const defaultConfig = {
