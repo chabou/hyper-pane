@@ -26,9 +26,10 @@ const defaultConfig = {
 
 let config = defaultConfig;
 
-const debug = function () {
-  if (config.debug){
+const debug = function() {
+  if (config.debug) {
     [].unshift.call(arguments, '|HYPER-PANE|');
+    //eslint-disable-next-line no-console
     console.log.apply(this, arguments);
   }
 };
@@ -37,9 +38,7 @@ const debug = function () {
  * Duplicate Hyper code
  */
 
-
 const SESSION_SET_ACTIVE = 'SESSION_SET_ACTIVE';
-const SESSION_RESIZE = 'SESSION_RESIZE';
 const SESSION_ADD = 'SESSION_ADD';
 const TERM_GROUP_RESIZE = 'TERM_GROUP_RESIZE';
 const TERM_GROUP_EXIT = 'TERM_GROUP_EXIT';
@@ -62,11 +61,7 @@ function findChildSessions(termGroups, uid) {
     return [uid];
   }
 
-  return group
-    .children
-    .reduce((total, childUid) => total.concat(
-      findChildSessions(termGroups, childUid)
-    ), []);
+  return group.children.reduce((total, childUid) => total.concat(findChildSessions(termGroups, childUid)), []);
 }
 
 const setActiveSession = (uid, focusPoint) => {
@@ -77,7 +72,7 @@ const setActiveSession = (uid, focusPoint) => {
       focusPoint
     });
   };
-}
+};
 
 function findBySession(termGroupState, sessionUid) {
   const {termGroups} = termGroupState;
@@ -98,11 +93,11 @@ const UI_MOVE_RIGHT_PANE = 'UI_MOVE_RIGHT_PANE';
 const UI_SWITCH_SESSIONS = 'UI_SWITCH_SESSIONS';
 
 const navigationActionMap = {
-  up: 'UI_MOVE_UP_PANE',
-  down: 'UI_MOVE_DOWN_PANE',
-  left: 'UI_MOVE_LEFT_PANE',
-  right: 'UI_MOVE_RIGHT_PANE'
-}
+  up: UI_MOVE_UP_PANE,
+  down: UI_MOVE_DOWN_PANE,
+  left: UI_MOVE_LEFT_PANE,
+  right: UI_MOVE_RIGHT_PANE
+};
 
 // Others
 const ROOT_FRAME = {
@@ -114,36 +109,25 @@ const ROOT_FRAME = {
 
 // For each rootGroup, it sorts its children
 function getSortedSessionGroups(termGroups) {
-  return getRootGroups(termGroups).reduce((result, {uid}) =>
-    Object.assign(result, {[uid]: findChildSessions(termGroups, uid)}), {})
-};
-
-// Get the index of the next or previous group,
-// depending on the movement direction:
-const getNeighborIndex = (groups, uid, type) => {
-  console.log('getNeighborIndex', groups, uid, type);
-  if (type === UI_MOVE_RIGHT_PANE ||
-      type === UI_MOVE_DOWN_PANE) {
-    return (groups.indexOf(uid) + 1) % groups.length;
-  }
-
-  return (groups.indexOf(uid) + groups.length - 1) % groups.length;
-};
+  return getRootGroups(termGroups).reduce(
+    (result, {uid}) => Object.assign(result, {[uid]: findChildSessions(termGroups, uid)}),
+    {}
+  );
+}
 
 const onMoveToPane = dispatch => (index, doSwitch) => {
-  dispatch((dispatch, getState) => {
-    dispatch({
+  dispatch((dispatch_, getState) => {
+    dispatch_({
       type: UI_MOVE_TO_PANE,
       index,
       effect() {
-        const { sessions, termGroups } = getState();
+        const {sessions, termGroups} = getState();
         const rootGroupUid = termGroups.activeRootGroup;
         const sortedSessionGroups = findChildSessions(termGroups.termGroups, rootGroupUid);
-        const uid = index > sortedSessionGroups.length
-          ? null
-          : (index === 9
-            ? sortedSessionGroups[sortedSessionGroups.length - 1]
-            : sortedSessionGroups[index - 1]);
+        const uid =
+          index > sortedSessionGroups.length
+            ? null
+            : index === 9 ? sortedSessionGroups[sortedSessionGroups.length - 1] : sortedSessionGroups[index - 1];
         if (uid === null) {
           debug('ignoring inexistent index', index);
           return;
@@ -157,7 +141,7 @@ const onMoveToPane = dispatch => (index, doSwitch) => {
             dispatch({
               type: UI_SWITCH_SESSIONS,
               from: activeSessionUid,
-              to: nextSessionUid,
+              to: nextSessionUid
             });
           } else {
             dispatch(setActiveSession(nextSessionUid));
@@ -168,68 +152,46 @@ const onMoveToPane = dispatch => (index, doSwitch) => {
   });
 };
 
-const isValidNeighborFactory = (direction) => {
-  const isHorzontal = (direction === UI_MOVE_RIGHT_PANE || direction === UI_MOVE_LEFT_PANE);
-  const coord = isHorzontal ? 'x' : 'y';
-  const dimension = isHorzontal ? 'w' : 'h';
-  const focusPointCoord = isHorzontal ? 'y' : 'x';
-  const focusPointDimension = isHorzontal ? 'h' : 'w';
-  const invert = (direction === UI_MOVE_LEFT_PANE || direction === UI_MOVE_UP_PANE);
-  return (termGroup, candidate, focusPoint) => {
-    if (!candidate.sessionUid) {
-      return false;
-    }
-    //debug('Testing candidate', candidate);
-    const first = invert ? candidate : termGroup;
-    const second = invert ? termGroup : candidate;
-    //debug(first.frame[coord], '+', first.frame[dimension], '-', second.frame[coord]);
-    return (first.frame[coord] + first.frame[dimension] - second.frame[coord] < Number.EPSILON)
-            && (first.frame[coord] + first.frame[dimension] - second.frame[coord] > -Number.EPSILON)
-            && (focusPoint[focusPointCoord] >= candidate.frame[focusPointCoord])
-            && (focusPoint[focusPointCoord] <= candidate.frame[focusPointCoord] + candidate.frame[focusPointDimension])
-
-  }
-}
-
 const onMoveToDirectionPane = dispatch => (type, doSwitch) => {
-  dispatch((dispatch, getState) => {
-    dispatch({
+  dispatch((dispatch_, getState) => {
+    dispatch_({
       type,
       effect() {
-        const { sessions, termGroups, ui } = getState();
+        const {sessions, termGroups, ui} = getState();
         const termGroup = findBySession(termGroups, sessions.activeUid);
         debug('Move Pane', type, termGroup.uid);
-        const focusPoint = (ui.paneNavigation && ui.paneNavigation.focusPoint)
-          ? ui.paneNavigation.focusPoint.asMutable()
-          : {
-            x: termGroup.frame.x + termGroup.frame.w / 2,
-            y: termGroup.frame.y + termGroup.frame.h / 2,
-          };
+        const focusPoint =
+          ui.paneNavigation && ui.paneNavigation.focusPoint
+            ? ui.paneNavigation.focusPoint.asMutable()
+            : {
+                x: termGroup.frame.x + termGroup.frame.w / 2,
+                y: termGroup.frame.y + termGroup.frame.h / 2
+              };
 
-        const isHorzontal = (type === UI_MOVE_RIGHT_PANE || type === UI_MOVE_LEFT_PANE);
+        const isHorzontal = type === UI_MOVE_RIGHT_PANE || type === UI_MOVE_LEFT_PANE;
         const coord = isHorzontal ? 'x' : 'y';
         const dimension = isHorzontal ? 'w' : 'h';
         const focusPointCoord = isHorzontal ? 'y' : 'x';
         const focusPointDimension = isHorzontal ? 'h' : 'w';
-        const invert = (type === UI_MOVE_LEFT_PANE || type === UI_MOVE_UP_PANE);
+        const invert = type === UI_MOVE_LEFT_PANE || type === UI_MOVE_UP_PANE;
 
         const rootGroupUid = termGroups.activeRootGroup;
         const sortedSessionGroups = findChildSessions(termGroups.termGroups, rootGroupUid);
-        const nextTermGroup = sortedSessionGroups
-          .map(uid => termGroups.termGroups[uid])
-          .find(candidate => {
-            if (!candidate.sessionUid) {
-              return false;
-            }
-            //debug('Testing candidate', candidate);
-            const first = invert ? candidate : termGroup;
-            const second = invert ? termGroup : candidate;
-            //debug(first.frame[coord], '+', first.frame[dimension], '-', second.frame[coord]);
-            return (first.frame[coord] + first.frame[dimension] - second.frame[coord] < Number.EPSILON)
-                    && (first.frame[coord] + first.frame[dimension] - second.frame[coord] > -Number.EPSILON)
-                    && (focusPoint[focusPointCoord] >= candidate.frame[focusPointCoord])
-                    && (focusPoint[focusPointCoord] <= candidate.frame[focusPointCoord] + candidate.frame[focusPointDimension])
-          });
+        const nextTermGroup = sortedSessionGroups.map(uid => termGroups.termGroups[uid]).find(candidate => {
+          if (!candidate.sessionUid) {
+            return false;
+          }
+          //debug('Testing candidate', candidate);
+          const first = invert ? candidate : termGroup;
+          const second = invert ? termGroup : candidate;
+          //debug(first.frame[coord], '+', first.frame[dimension], '-', second.frame[coord]);
+          return (
+            first.frame[coord] + first.frame[dimension] - second.frame[coord] < Number.EPSILON &&
+            first.frame[coord] + first.frame[dimension] - second.frame[coord] > -Number.EPSILON &&
+            focusPoint[focusPointCoord] >= candidate.frame[focusPointCoord] &&
+            focusPoint[focusPointCoord] <= candidate.frame[focusPointCoord] + candidate.frame[focusPointDimension]
+          );
+        });
 
         debug('nextTermGroup', nextTermGroup);
         if (nextTermGroup) {
@@ -238,14 +200,17 @@ const onMoveToDirectionPane = dispatch => (type, doSwitch) => {
             dispatch({
               type: UI_SWITCH_SESSIONS,
               from: activeSessionUid,
-              to: nextTermGroup.sessionUid,
+              to: nextTermGroup.sessionUid
             });
           } else {
-            focusPoint[coord] = nextTermGroup.frame[coord] + nextTermGroup.frame[dimension]/2;
+            focusPoint[coord] = nextTermGroup.frame[coord] + nextTermGroup.frame[dimension] / 2;
             // If next Pane border is included in current pane border, we can move opposite focusPoint coord accordly
-            if (nextTermGroup.frame[focusPointCoord] > termGroup.frame[focusPointCoord]
-              && nextTermGroup.frame[focusPointDimension] < termGroup.frame[focusPointDimension]) {
-              focusPoint[focusPointCoord] = nextTermGroup.frame[focusPointCoord] + nextTermGroup.frame[focusPointDimension]/2;
+            if (
+              nextTermGroup.frame[focusPointCoord] > termGroup.frame[focusPointCoord] &&
+              nextTermGroup.frame[focusPointDimension] < termGroup.frame[focusPointDimension]
+            ) {
+              focusPoint[focusPointCoord] =
+                nextTermGroup.frame[focusPointCoord] + nextTermGroup.frame[focusPointDimension] / 2;
             }
             dispatch(setActiveSession(nextTermGroup.sessionUid, focusPoint));
           }
@@ -253,7 +218,7 @@ const onMoveToDirectionPane = dispatch => (type, doSwitch) => {
       }
     });
   });
-}
+};
 
 const updateChildrenFrames = (state, groupUid) => {
   debug('updateChildrenFrames: call on', groupUid);
@@ -278,8 +243,8 @@ const updateChildrenFrames = (state, groupUid) => {
     }
     return state;
   }
-  const originProp = (group.direction === DIRECTION.HORIZONTAL) ? 'y' : 'x';
-  const sizeProp = (group.direction === DIRECTION.HORIZONTAL) ? 'h' : 'w';
+  const originProp = group.direction === DIRECTION.HORIZONTAL ? 'y' : 'x';
+  const sizeProp = group.direction === DIRECTION.HORIZONTAL ? 'h' : 'w';
 
   let currentOrigin = group.frame[originProp];
   for (let i = 0; i < group.children.length; i++) {
@@ -303,16 +268,16 @@ const updateChildrenFrames = (state, groupUid) => {
 
 const onMaximizePane = dispatch => () => {
   debug('onMaximizePane');
-  dispatch((dispatch, getState) => {
-    const { sessions, termGroups } = getState();
+  dispatch((dispatch_, getState) => {
+    const {sessions, termGroups} = getState();
     const termGroup = findBySession(termGroups, sessions.activeUid);
     if (!termGroup) {
       debug('No termGroup found for active Session');
       return;
     }
-    dispatch({
+    dispatch_({
       type: 'UI_MAXIMIZE_PANE',
-      uid: termGroup.uid,
+      uid: termGroup.uid
     });
   });
 };
@@ -320,6 +285,14 @@ const onMaximizePane = dispatch => () => {
 /**
  * Plugin bindings
  */
+
+exports.decorateConfig = mainConfig => {
+  if (mainConfig.paneNavigation) {
+    config = merge(JSON.parse(JSON.stringify(defaultConfig)), mainConfig.paneNavigation);
+  }
+  debug('Decorated config', mainConfig);
+  return mainConfig;
+};
 
 exports.middleware = store => next => action => {
   switch (action.type) {
@@ -329,63 +302,65 @@ exports.middleware = store => next => action => {
         config = merge(JSON.parse(JSON.stringify(defaultConfig)), action.config.paneNavigation);
       }
       break;
-    case 'SESSION_ADD': {
-      const { termGroups, sessions } = store.getState();
-      if (termGroups.maximizeSave && termGroups.maximizeSave[termGroups.activeRootGroup]) {
-        // Current Pane is maximized, restore it before adding a potential split
-        store.dispatch({
-          type: 'UI_MAXIMIZE_PANE',
-          uid: termGroups.activeRootGroup
-        })
+    case 'SESSION_ADD':
+      {
+        const {termGroups} = store.getState();
+        if (termGroups.maximizeSave && termGroups.maximizeSave[termGroups.activeRootGroup]) {
+          // Current Pane is maximized, restore it before adding a potential split
+          store.dispatch({
+            type: 'UI_MAXIMIZE_PANE',
+            uid: termGroups.activeRootGroup
+          });
+        }
       }
-    }
       break;
   }
   return next(action);
-}
+};
 
 exports.reduceTermGroups = (state, action) => {
-
   switch (action.type) {
-    case 'UI_MAXIMIZE_PANE': {
-      if (!state.maximizeSave || !state.maximizeSave[action.uid]) {
-        // Maximize
-        debug('Maximizing', action.uid);
-        const { parentUid, sessionUid } = state.termGroups[action.uid];
-        state = state.setIn(['maximizeSave', action.uid], {
-          'activeRootGroup': state.activeRootGroup,
-          parentUid,
-          sessionUid
-        });
-        state = state.setIn(['termGroups', action.uid, 'parentUid'], null);
-        state = state.setIn(['termGroups', state.activeRootGroup, 'parentUid'], 'fakeParent'); // fake parentUid to prevent getRootGroups selector to include it
-        state = state.setIn(['activeSessions', action.uid], sessionUid);
-        state = state.set('activeSessions', state.activeSessions.without(state.activeRootGroup));
-        state = state.set('activeRootGroup', action.uid);
-      } else {
-        // Restore
-        debug('Restoring', action.uid);
-        const { activeRootGroup, parentUid, sessionUid } = state.maximizeSave[action.uid];
-        state = state.setIn(['termGroups', action.uid, 'parentUid'], parentUid);
-        state = state.setIn(['termGroups', activeRootGroup, 'parentUid'], null);
-        state = state.setIn(['activeSessions', activeRootGroup], sessionUid);
-        state = state.set('activeSessions', state.activeSessions.without(action.uid));
-        state = state.set('activeRootGroup', activeRootGroup);
-        state = state.set('maximizeSave', state.maximizeSave.without(action.uid));
+    case 'UI_MAXIMIZE_PANE':
+      {
+        if (!state.maximizeSave || !state.maximizeSave[action.uid]) {
+          // Maximize
+          debug('Maximizing', action.uid);
+          const {parentUid, sessionUid} = state.termGroups[action.uid];
+          state = state.setIn(['maximizeSave', action.uid], {
+            activeRootGroup: state.activeRootGroup,
+            parentUid,
+            sessionUid
+          });
+          state = state.setIn(['termGroups', action.uid, 'parentUid'], null);
+          state = state.setIn(['termGroups', state.activeRootGroup, 'parentUid'], 'fakeParent'); // fake parentUid to prevent getRootGroups selector to include it
+          state = state.setIn(['activeSessions', action.uid], sessionUid);
+          state = state.set('activeSessions', state.activeSessions.without(state.activeRootGroup));
+          state = state.set('activeRootGroup', action.uid);
+        } else {
+          // Restore
+          debug('Restoring', action.uid);
+          const {activeRootGroup, parentUid, sessionUid} = state.maximizeSave[action.uid];
+          state = state.setIn(['termGroups', action.uid, 'parentUid'], parentUid);
+          state = state.setIn(['termGroups', activeRootGroup, 'parentUid'], null);
+          state = state.setIn(['activeSessions', activeRootGroup], sessionUid);
+          state = state.set('activeSessions', state.activeSessions.without(action.uid));
+          state = state.set('activeRootGroup', activeRootGroup);
+          state = state.set('maximizeSave', state.maximizeSave.without(action.uid));
+        }
       }
-    }
       break;
-    case 'UI_SWITCH_SESSIONS':
+    case 'UI_SWITCH_SESSIONS': {
       const fromTermGroupUid = findBySession(state, action.from).uid;
       const toTermGroupUid = findBySession(state, action.to).uid;
       if (!fromTermGroupUid || !toTermGroupUid) {
-
         return state;
       }
       debug('Switching sessions for termGroups', fromTermGroupUid, toTermGroupUid);
-      state = state.setIn(['termGroups', fromTermGroupUid, 'sessionUid'], action.to)
+      state = state
+        .setIn(['termGroups', fromTermGroupUid, 'sessionUid'], action.to)
         .setIn(['termGroups', toTermGroupUid, 'sessionUid'], action.from);
       break;
+    }
     case SESSION_ADD:
       if (!state.activeRootGroup) {
         break;
@@ -408,16 +383,16 @@ exports.reduceTermGroups = (state, action) => {
   }
 
   return state;
-}
+};
 
 exports.reduceUI = (state, action) => {
   switch (action.type) {
     case SESSION_SET_ACTIVE:
-        state = state.setIn(['paneNavigation', 'focusPoint'], action.focusPoint);
+      state = state.setIn(['paneNavigation', 'focusPoint'], action.focusPoint);
       break;
   }
   return state;
-}
+};
 
 exports.mapTermsState = (state, map) => {
   const result = getSortedSessionGroups(state.termGroups.termGroups);
@@ -425,15 +400,17 @@ exports.mapTermsState = (state, map) => {
 };
 
 exports.getTermGroupProps = (uid, parentProps, props) => {
-  const { sortedSessionGroups, activeRootGroup } = parentProps;
+  const {sortedSessionGroups, activeRootGroup} = parentProps;
   if (!sortedSessionGroups[activeRootGroup]) {
     return props;
   }
-  return Object.assign(props, {sortedSessionGroups: sortedSessionGroups[activeRootGroup]});
+  return Object.assign(props, {
+    sortedSessionGroups: sortedSessionGroups[activeRootGroup]
+  });
 };
 
 exports.getTermProps = (uid, parentProps, props) => {
-  const { termGroup, sortedSessionGroups } = parentProps;
+  const {termGroup, sortedSessionGroups} = parentProps;
   if (!sortedSessionGroups) {
     return props;
   }
@@ -442,7 +419,7 @@ exports.getTermProps = (uid, parentProps, props) => {
   let termShorcutNum = 0;
   if (sortedSessionGroups.length === 1) {
     termShorcutNum = 0;
-  } else if (index < 8 ) {
+  } else if (index < 8) {
     termShorcutNum = index + 1;
   } else if (index === sortedSessionGroups.length - 1) {
     termShorcutNum = 9;
@@ -457,20 +434,25 @@ exports.mapTermsDispatch = (dispatch, map) => {
   map.onMoveToDirectionPane = onMoveToDirectionPane(dispatch);
   map.onMaximizePane = onMaximizePane(dispatch);
   return map;
-}
+};
 
 exports.extendKeymaps = () => {
   const keys = {};
   const jump_prefix = config.hotkeys.jump_prefix ? config.hotkeys.jump_prefix.toLowerCase() : '';
-  const permutation_modifier = config.hotkeys.permutation_modifier ? config.hotkeys.permutation_modifier.toLowerCase() : '';
+  const permutation_modifier = config.hotkeys.permutation_modifier
+    ? config.hotkeys.permutation_modifier.toLowerCase()
+    : '';
+  let shortcut;
+  let name;
+
   if (jump_prefix && jump_prefix.length) {
-    ['1','2','3','4','5','6','7','8','9'].forEach(num => {
-      let shortcut = `${jump_prefix}+${num}`;
-      let name = `pane:move_${num}`
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9'].forEach(num => {
+      shortcut = `${jump_prefix}+${num}`;
+      name = `pane:move_${num}`;
       keys[name] = shortcut;
       if (permutation_modifier && permutation_modifier.length) {
         shortcut = `${permutation_modifier}+${shortcut}`;
-        name = `pane:switch_${num}`
+        name = `pane:switch_${num}`;
         keys[name] = shortcut;
       }
     });
@@ -479,13 +461,14 @@ exports.extendKeymaps = () => {
   Object.keys(config.hotkeys.navigation).forEach(direction => {
     const key = config.hotkeys.navigation[direction].toLowerCase();
     const actionType = navigationActionMap[direction];
+
     if (key && key.length && actionType && actionType.length) {
       shortcut = key;
       name = `pane:move_${direction}`;
       keys[name] = shortcut;
       if (permutation_modifier && permutation_modifier.length) {
-        shortcut = `${permutation_modifier}+${key}`
-        name = `pane:switch_${direction}`
+        shortcut = `${permutation_modifier}+${key}`;
+        name = `pane:switch_${direction}`;
         keys[name] = shortcut;
       }
     }
@@ -500,9 +483,9 @@ exports.extendKeymaps = () => {
 
   debug('Extend keymaps with', keys);
   return keys;
-}
+};
 
-exports.decorateTerms = (Terms, { React, notify, Notification }) => {
+exports.decorateTerms = (Terms, {React}) => {
   return class extends React.Component {
     constructor(props, context) {
       super(props, context);
@@ -523,48 +506,48 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
     generateCommands() {
       let name;
       let handler;
-      let commands = ['1','2','3','4','5','6','7','8','9'].reduce((commands, num) => {
+      let commands = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].reduce((commands_, num) => {
         name = `pane:move_${num}`;
         handler = e => {
           this.props.onMoveToPane(num);
           e.preventDefault();
-        }
-        commands[name] = handler;
+        };
+        commands_[name] = handler;
 
         name = `pane:switch_${num}`;
         handler = e => {
           this.props.onMoveToPane(num, true);
           e.preventDefault();
-        }
-        commands[name] = handler;
+        };
+        commands_[name] = handler;
 
-        return commands;
+        return commands_;
       }, {});
 
-      commands = Object.keys(navigationActionMap).reduce((commands, direction) => {
+      commands = Object.keys(navigationActionMap).reduce((commands_, direction) => {
         const actionType = navigationActionMap[direction];
         name = `pane:move_${direction}`;
         handler = e => {
           this.props.onMoveToDirectionPane(actionType);
           e.preventDefault();
-        }
-        commands[name] = handler;
+        };
+        commands_[name] = handler;
 
         name = `pane:switch_${direction}`;
         handler = e => {
           this.props.onMoveToDirectionPane(actionType, true);
           e.preventDefault();
-        }
-        commands[name] = handler;
-        
-        return commands;
-      }, commands)
-      
+        };
+        commands_[name] = handler;
+
+        return commands_;
+      }, commands);
+
       name = 'pane:maximize';
       handler = e => {
         this.props.onMaximizePane();
         e.preventDefault();
-      }
+      };
       commands[name] = handler;
 
       return commands;
@@ -580,22 +563,25 @@ exports.decorateTerms = (Terms, { React, notify, Notification }) => {
     }
 
     render() {
-      return React.createElement(Terms, Object.assign({}, this.props, {
-        onDecorated: this.onDecorated
-      }));
+      return React.createElement(
+        Terms,
+        Object.assign({}, this.props, {
+          onDecorated: this.onDecorated
+        })
+      );
     }
-  }
-}
+  };
+};
 
-exports.decorateTerm = (Term, { React, notify }) => {
+exports.decorateTerm = (Term, {React}) => {
   return class extends React.Component {
     constructor(props, context) {
-        super(props, context);
-        this.onDecorated = this.onDecorated.bind(this);
-        this.onMouseEnter = this.onMouseEnter.bind(this);
+      super(props, context);
+      this.onDecorated = this.onDecorated.bind(this);
+      this.onMouseEnter = this.onMouseEnter.bind(this);
     }
 
-    onMouseEnter(e) {
+    onMouseEnter() {
       debug('Mouse is hover Term', this.term);
       if (config.focusOnMouseHover && !this.term.props.isTermActive) {
         this.term.props.onActive(this.term.props.uid);
@@ -619,10 +605,12 @@ exports.decorateTerm = (Term, { React, notify }) => {
       }
     }
 
-    render () {
+    render() {
       const props = {
         onDecorated: this.onDecorated
       };
+
+      //return toto.titi;
 
       if (!config.showIndicators) {
         return React.createElement(Term, Object.assign({}, this.props, props));
@@ -640,8 +628,5 @@ exports.decorateTerm = (Term, { React, notify }) => {
       props.customChildrenBefore = customChildrenBefore;
       return React.createElement(Term, Object.assign({}, this.props, props));
     }
-  }
-}
-
-
-
+  };
+};
