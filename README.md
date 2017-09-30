@@ -55,13 +55,13 @@ module.exports = {
 };
 ```
 ### Supported keys
-Supported keys are the same than for [Mousetrap](https://craig.is/killing/mice).
-
 For modifier keys you can use `shift`, `ctrl`, `alt`, or `meta`. You can substitute `option` for `alt` and `command` for `meta`.
 
 Other special keys are `backspace`, `tab`, `enter`, `return`, `capslock`, `esc`, `escape`, `space`, `pageup`, `pagedown`, `end`, `home`, `left`, `up`, `right`, `down`, `ins`, `del`, and `plus`.
 
-Any other key you should be able to reference by name like `a`, `/`, `$`, `*`, or `=`.  
+Any other key you should be able to reference by name like `a`, `/`, `$`, `*`, or `=`.
+
+**⚠ Warning**: Use `ctrl+alt` or `cmd+alt` modifier only with arrow and digit key. Otherwise, shortcut will not be detected by Hyper.
 
 ## Usage
 ### Navigation with arrows
