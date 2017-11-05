@@ -1,8 +1,7 @@
 {
   "name": "hyper-pane",
   "version": "2.0.0-rc1",
-  "description":
-    "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
+  "description": "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
   "main": "index.js",
   "scripts": {
     "test": "eslint ."
@@ -11,7 +10,13 @@
     "type": "git",
     "url": "git+https://github.com/chabou/hyper-pane.git"
   },
-  "keywords": ["hyper", "hyper.app", "hyperterm", "pane", "navigation"],
+  "keywords": [
+    "hyper",
+    "hyper.app",
+    "hyperterm",
+    "pane",
+    "navigation"
+  ],
   "author": "CHaBou",
   "license": "MIT",
   "bugs": {
@@ -19,8 +24,15 @@
   },
   "homepage": "https://github.com/chabou/hyper-pane#readme",
   "eslintConfig": {
-    "plugins": ["react", "prettier"],
-    "extends": ["eslint:recommended", "plugin:react/recommended", "prettier"],
+    "plugins": [
+      "react",
+      "prettier"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:react/recommended",
+      "prettier"
+    ],
     "parserOptions": {
       "ecmaVersion": 8,
       "sourceType": "module",
@@ -37,7 +49,10 @@
       "node": true
     },
     "rules": {
-      "func-names": ["error", "as-needed"],
+      "func-names": [
+        "error",
+        "as-needed"
+      ],
       "no-shadow": "error",
       "no-extra-semi": 0,
       "react/prop-types": 0,
@@ -65,10 +80,10 @@
     "lodash.merge": "^4.6.0"
   },
   "devDependencies": {
-    "eslint": "^4.8.0",
-    "eslint-config-prettier": "^2.6.0",
-    "eslint-plugin-prettier": "^2.3.1",
-    "eslint-plugin-react": "^7.4.0",
-    "prettier": "^1.7.3"
+    "eslint": "4.10.0",
+    "eslint-config-prettier": "2.7.0",
+    "eslint-plugin-prettier": "2.3.1",
+    "eslint-plugin-react": "7.4.0",
+    "prettier": "1.7.4"
   }
 }
