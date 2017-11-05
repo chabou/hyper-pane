@@ -436,7 +436,7 @@ exports.mapTermsDispatch = (dispatch, map) => {
   return map;
 };
 
-exports.extendKeymaps = () => {
+exports.decorateKeymaps = keymaps => {
   const keys = {};
   const jump_prefix = config.hotkeys.jump_prefix ? config.hotkeys.jump_prefix.toLowerCase() : '';
   const permutation_modifier = config.hotkeys.permutation_modifier
@@ -482,7 +482,7 @@ exports.extendKeymaps = () => {
   }
 
   debug('Extend keymaps with', keys);
-  return keys;
+  return Object.assign({}, keymaps, keys);
 };
 
 exports.decorateTerms = (Terms, {React}) => {
