@@ -11,7 +11,15 @@
     "type": "git",
     "url": "git+https://github.com/chabou/hyper-pane.git"
   },
-  "keywords": ["hyper", "hyper.app", "hyperterm", "pane", "navigation"],
+  "keywords": [
+    "hyper",
+    "hyper.app",
+    "hyperterm",
+    "pane",
+    "navigation",
+    "hyper-plugin",
+    "plugin"
+  ],
   "author": "CHaBou",
   "license": "MIT",
   "bugs": {
