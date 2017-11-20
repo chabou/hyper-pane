@@ -1,6 +1,6 @@
 {
   "name": "hyper-pane",
-  "version": "2.0.0-rc2",
+  "version": "2.0.0-rc3",
   "description":
     "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
   "main": "index.js",
