@@ -546,6 +546,7 @@ exports.decorateTerms = (Terms, {React}) => {
       name = 'pane:maximize';
       handler = e => {
         this.props.onMaximizePane();
+        this.handleFocusActive();
         e.preventDefault();
       };
       commands[name] = handler;
@@ -559,7 +560,9 @@ exports.decorateTerms = (Terms, {React}) => {
       if (this.props.onDecorated) {
         this.props.onDecorated(terms);
       }
-      this.terms.registerCommands(this.generateCommands());
+      if (this.terms) {
+        this.terms.registerCommands(this.generateCommands());
+      }
     }
 
     render() {
