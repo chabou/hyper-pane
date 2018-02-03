@@ -12,6 +12,7 @@
   },
   "keywords": [
     "hyper",
+    "hyper-plugin",
     "hyper.app",
     "hyperterm",
     "pane",
@@ -19,6 +20,10 @@
     "hyper-plugin",
     "plugin"
   ],
+  "plugin": {
+    "preview":
+      "https://cloud.githubusercontent.com/assets/4137761/22717106/844a9c5c-ed99-11e6-8e88-8c71a8cbbd5a.gif"
+  },
   "author": "CHaBou",
   "license": "MIT",
   "bugs": {
