@@ -12,11 +12,16 @@
   },
   "keywords": [
     "hyper",
+    "hyper-plugin",
     "hyper.app",
     "hyperterm",
     "pane",
     "navigation"
   ],
+  "plugin": {
+    "preview":
+      "https://cloud.githubusercontent.com/assets/4137761/22717106/844a9c5c-ed99-11e6-8e88-8c71a8cbbd5a.gif"
+  },
   "author": "CHaBou",
   "license": "MIT",
   "bugs": {
@@ -27,10 +32,7 @@
     "extends": "xo-react",
     "esnext": true,
     "space": true,
-    "env": [
-      "browser",
-      "node"
-    ],
+    "env": ["browser", "node"],
     "rules": {
       "new-cap": 0,
       "no-warning-comments": 0,
@@ -39,12 +41,7 @@
       "react/prop-types": 0,
       "react/jsx-no-bind": 0
     },
-    "ignores": [
-      "build/**",
-      "app/dist/**",
-      "app/static/**",
-      "assets/**"
-    ]
+    "ignores": ["build/**", "app/dist/**", "app/static/**", "assets/**"]
   },
   "dependencies": {
     "lodash.merge": "^4.6.0",
