@@ -395,22 +395,26 @@ exports.reduceUI = (state, action) => {
 };
 
 exports.mapTermsState = (state, map) => {
-  const result = getSortedSessionGroups(state.termGroups.termGroups);
-  return Object.assign({}, map, {sortedSessionGroups: result});
+  const sortedSessionGroups = getSortedSessionGroups(state.termGroups.termGroups);
+  const maximizedTermGroups = state.termGroups.maximizeSave;
+  return Object.assign({}, map, {sortedSessionGroups, maximizedTermGroups});
 };
 
 exports.getTermGroupProps = (uid, parentProps, props) => {
-  const {sortedSessionGroups, activeRootGroup} = parentProps;
-  if (!sortedSessionGroups[activeRootGroup]) {
-    return props;
+  const {sortedSessionGroups, activeRootGroup, maximizedTermGroups} = parentProps;
+  if (sortedSessionGroups[activeRootGroup]) {
+    props = Object.assign(props, {
+      sortedSessionGroups: sortedSessionGroups[activeRootGroup]
+    });
   }
-  return Object.assign(props, {
-    sortedSessionGroups: sortedSessionGroups[activeRootGroup]
+  props = Object.assign(props, {
+    isMaximized: !!(maximizedTermGroups && maximizedTermGroups[uid])
   });
+  return props;
 };
 
 exports.getTermProps = (uid, parentProps, props) => {
-  const {termGroup, sortedSessionGroups} = parentProps;
+  const {termGroup, sortedSessionGroups, isMaximized} = parentProps;
   if (!sortedSessionGroups) {
     return props;
   }
@@ -424,8 +428,9 @@ exports.getTermProps = (uid, parentProps, props) => {
   } else if (index === sortedSessionGroups.length - 1) {
     termShorcutNum = 9;
   }
+
   //debug('Setting Shortcutnum', termShorcutNum, 'to Term', uid);
-  return Object.assign({}, props, {termShorcutNum});
+  return Object.assign({}, props, {termShorcutNum, isMaximized});
 };
 
 exports.mapTermsDispatch = (dispatch, map) => {
@@ -611,8 +616,16 @@ exports.decorateTerm = (Term, {React}) => {
       };
 
       //return toto.titi;
+      let indicator;
+      if (config.showIndicators) {
+        if (this.props.isMaximized) {
+          indicator = '🗖';
+        } else if (this.props.termShorcutNum > 0) {
+          indicator = config.indicatorPrefix + this.props.termShorcutNum;
+        }
+      }
 
-      if (!config.showIndicators) {
+      if (!indicator) {
         return React.createElement(Term, Object.assign({}, this.props, props));
       }
       const myCustomChildrenBefore = React.createElement(
@@ -620,7 +633,7 @@ exports.decorateTerm = (Term, {React}) => {
         {
           style: config.indicatorStyle
         },
-        this.props.termShorcutNum > 0 ? config.indicatorPrefix + this.props.termShorcutNum : ''
+        indicator
       );
       const customChildrenBefore = this.props.customChildrenBefore
         ? Array.from(this.props.customChildrenBefore).concat(myCustomChildrenBefore)
