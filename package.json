@@ -1,7 +1,8 @@
 {
   "name": "hyper-pane",
-  "version": "2.0.0-rc3",
-  "description": "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
+  "version": "2.0.0-rc.5",
+  "description":
+    "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
   "main": "index.js",
   "scripts": {
     "test": "eslint ."
@@ -31,15 +32,8 @@
   },
   "homepage": "https://github.com/chabou/hyper-pane#readme",
   "eslintConfig": {
-    "plugins": [
-      "react",
-      "prettier"
-    ],
-    "extends": [
-      "eslint:recommended",
-      "plugin:react/recommended",
-      "prettier"
-    ],
+    "plugins": ["react", "prettier"],
+    "extends": ["eslint:recommended", "plugin:react/recommended", "prettier"],
     "parserOptions": {
       "ecmaVersion": 8,
       "sourceType": "module",
@@ -56,10 +50,7 @@
       "node": true
     },
     "rules": {
-      "func-names": [
-        "error",
-        "as-needed"
-      ],
+      "func-names": ["error", "as-needed"],
       "no-shadow": "error",
       "no-extra-semi": 0,
       "react/prop-types": 0,
