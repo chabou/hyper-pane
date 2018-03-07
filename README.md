@@ -1,4 +1,9 @@
 # hyper-pane
+[![CI Status](https://circleci.com/gh/chabou/hyper-pane.svg?style=shield)](https://circleci.com/gh/chabou/hyper-pane)
+[![NPM version](https://badge.fury.io/js/hyper-pane.svg)](https://www.npmjs.com/package/hyper-pane)
+![Downloads](https://img.shields.io/npm/dm/hyper-pane.svg?style=flat)
+[![Conventional Commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-yellow.svg)](https://conventionalcommits.org)
+
 Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.
 
 Navigation with arrows:
