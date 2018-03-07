@@ -1,24 +1,39 @@
+# Javascript Node CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-javascript/ for more details
+#
 version: 2
 jobs:
   build:
     docker:
-      - image: circleci/node:9-stretch
+      # specify the version you desire here
+      - image: circleci/node:9
+      
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/mongo:3.4.4
+
+    working_directory: ~/repo
+
     steps:
       - checkout
 
+      # Download and cache dependencies
       - restore_cache:
           keys:
-            - hyper-pane-yarn-{{ checksum "yarn.lock" }}
+          - v1-dependencies-{{ .Branch }}-{{ checksum "yarn.lock" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-{{ .Branch }}-
+          - v1-dependencies-
 
-      - run:
-          name: Yarn Install
-          command: yarn install --cache-folder ~/.cache/yarn
+      - run: yarn install
 
       - save_cache:
-          key: hyper-pane-yarn-{{ checksum "yarn.lock" }}
           paths:
-            - ~/.cache/yarn
-      
-      - run:
-          name: Test
-          command: yarn run test
+            - node_modules
+          key: v1-dependencies-{{ checksum "yarn.lock" }}
+        
+      # run tests!
+      - run: yarn test
+
