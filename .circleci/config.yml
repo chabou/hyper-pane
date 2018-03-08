@@ -55,11 +55,16 @@ workflows:
   version: 2
   build-and-deploy:
     jobs:
-      - build
+      - build:
+          filters:
+            tags:
+              only: /.*/
       - deploy:
           requires:
             - build
           filters:
             tags:
-              only: /^v\d+\.\d+\.\d+/
+              only: /^v\d+\.\d+\.\d+$/
+            branches:
+              ignore: /.*/
 
