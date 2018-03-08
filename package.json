@@ -6,7 +6,8 @@
   "scripts": {
     "lint": "eslint .",
     "test": "yarn run lint",
-    "precommit": "yarn run test"
+    "precommit": "yarn run test",
+    "release": "standard-version"
   },
   "repository": {
     "type": "git",
