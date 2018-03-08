@@ -38,6 +38,9 @@ jobs:
       - run: yarn test
 
   deploy:
+    docker:
+      # specify the version you desire here
+      - image: circleci/node:9
     steps:
       - checkout
       - run:
