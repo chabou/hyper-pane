@@ -1,13 +1,11 @@
 {
   "name": "hyper-pane",
-  "version": "1.3.4",
-  "description": "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
+  "version": "2.0.0",
+  "description":
+    "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
   "main": "index.js",
   "scripts": {
-    "lint": "eslint .",
-    "test": "yarn run lint",
-    "precommit": "yarn run test",
-    "release": "standard-version"
+    "test": "eslint ."
   },
   "repository": {
     "type": "git",
@@ -19,7 +17,9 @@
     "hyper.app",
     "hyperterm",
     "pane",
-    "navigation"
+    "navigation",
+    "hyper-plugin",
+    "plugin"
   ],
   "plugin": {
     "preview": "https://cloud.githubusercontent.com/assets/4137761/22717106/844a9c5c-ed99-11e6-8e88-8c71a8cbbd5a.gif"
@@ -31,17 +31,13 @@
   },
   "homepage": "https://github.com/chabou/hyper-pane#readme",
   "eslintConfig": {
-    "plugins": [
-      "prettier"
-    ],
-    "extends": [
-      "eslint:recommended",
-      "prettier"
-    ],
+    "plugins": ["react", "prettier"],
+    "extends": ["eslint:recommended", "plugin:react/recommended", "prettier"],
     "parserOptions": {
       "ecmaVersion": 8,
       "sourceType": "module",
       "ecmaFeatures": {
+        "jsx": true,
         "impliedStrict": true,
         "experimentalObjectRestSpread": true
       },
@@ -49,16 +45,18 @@
     },
     "env": {
       "es6": true,
+      "browser": true,
       "node": true
     },
     "rules": {
-      "func-names": [
-        "error",
-        "as-needed"
-      ],
+      "func-names": ["error", "as-needed"],
       "no-shadow": "error",
       "no-extra-semi": 0,
-      "no-console": 0,
+      "react/prop-types": 0,
+      "react/react-in-jsx-scope": 0,
+      "react/no-unescaped-entities": 0,
+      "react/jsx-no-target-blank": 0,
+      "react/no-string-refs": 0,
       "prettier/prettier": [
         "error",
         {
@@ -76,15 +74,13 @@
     }
   },
   "dependencies": {
-    "lodash.merge": "^4.6.0",
-    "mousetrap": "^1.6.0"
+    "lodash.merge": "^4.6.0"
   },
   "devDependencies": {
-    "eslint": "^4.18.2",
-    "eslint-config-prettier": "^2.9.0",
-    "eslint-plugin-prettier": "^2.6.0",
-    "husky": "^0.14.3",
-    "prettier": "^1.11.1",
-    "standard-version": "^4.3.0"
+    "eslint": "4.10.0",
+    "eslint-config-prettier": "2.7.0",
+    "eslint-plugin-prettier": "2.3.1",
+    "eslint-plugin-react": "7.4.0",
+    "prettier": "1.7.4"
   }
 }

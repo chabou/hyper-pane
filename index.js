@@ -1,4 +1,3 @@
-const Mousetrap = require('mousetrap');
 const merge = require('lodash.merge');
 
 const defaultConfig = {
@@ -12,7 +11,7 @@ const defaultConfig = {
     },
     jump_prefix: 'ctrl+alt',
     permutation_modifier: 'shift',
-    maximize: 'meta+enter'
+    maximize: 'cmd+enter'
   },
   showIndicators: true,
   indicatorPrefix: '^⌥',
@@ -21,7 +20,8 @@ const defaultConfig = {
     top: 0,
     left: 0,
     fontSize: '10px'
-  }
+  },
+  focusOnMouseHover: false
 };
 
 let config = defaultConfig;
@@ -29,6 +29,7 @@ let config = defaultConfig;
 const debug = function() {
   if (config.debug) {
     [].unshift.call(arguments, '|HYPER-PANE|');
+    //eslint-disable-next-line no-console
     console.log.apply(this, arguments);
   }
 };
@@ -153,7 +154,7 @@ const onMoveToPane = dispatch => (index, doSwitch) => {
 
 const onMoveToDirectionPane = dispatch => (type, doSwitch) => {
   dispatch((dispatch_, getState) => {
-    dispatch({
+    dispatch_({
       type,
       effect() {
         const {sessions, termGroups, ui} = getState();
@@ -285,6 +286,14 @@ const onMaximizePane = dispatch => () => {
  * Plugin bindings
  */
 
+exports.decorateConfig = mainConfig => {
+  if (mainConfig.paneNavigation) {
+    config = merge(JSON.parse(JSON.stringify(defaultConfig)), mainConfig.paneNavigation);
+  }
+  debug('Decorated config', mainConfig);
+  return mainConfig;
+};
+
 exports.middleware = store => next => action => {
   switch (action.type) {
     case 'CONFIG_LOAD':
@@ -386,20 +395,26 @@ exports.reduceUI = (state, action) => {
 };
 
 exports.mapTermsState = (state, map) => {
-  const result = getSortedSessionGroups(state.termGroups.termGroups);
-  return Object.assign({}, map, {sortedSessionGroups: result});
+  const sortedSessionGroups = getSortedSessionGroups(state.termGroups.termGroups);
+  const maximizedTermGroups = state.termGroups.maximizeSave;
+  return Object.assign({}, map, {sortedSessionGroups, maximizedTermGroups});
 };
 
 exports.getTermGroupProps = (uid, parentProps, props) => {
-  const {sortedSessionGroups, activeRootGroup} = parentProps;
-  if (!sortedSessionGroups[activeRootGroup]) {
-    return props;
+  const {sortedSessionGroups, activeRootGroup, maximizedTermGroups} = parentProps;
+  if (sortedSessionGroups[activeRootGroup]) {
+    props = Object.assign(props, {
+      sortedSessionGroups: sortedSessionGroups[activeRootGroup]
+    });
   }
-  return Object.assign(props, {sortedSessionGroups: sortedSessionGroups[activeRootGroup]});
+  props = Object.assign(props, {
+    isMaximized: !!(maximizedTermGroups && maximizedTermGroups[uid])
+  });
+  return props;
 };
 
 exports.getTermProps = (uid, parentProps, props) => {
-  const {termGroup, sortedSessionGroups} = parentProps;
+  const {termGroup, sortedSessionGroups, isMaximized} = parentProps;
   if (!sortedSessionGroups) {
     return props;
   }
@@ -413,8 +428,9 @@ exports.getTermProps = (uid, parentProps, props) => {
   } else if (index === sortedSessionGroups.length - 1) {
     termShorcutNum = 9;
   }
+
   //debug('Setting Shortcutnum', termShorcutNum, 'to Term', uid);
-  return Object.assign({}, props, {termShorcutNum});
+  return Object.assign({}, props, {termShorcutNum, isMaximized});
 };
 
 exports.mapTermsDispatch = (dispatch, map) => {
@@ -423,6 +439,55 @@ exports.mapTermsDispatch = (dispatch, map) => {
   map.onMoveToDirectionPane = onMoveToDirectionPane(dispatch);
   map.onMaximizePane = onMaximizePane(dispatch);
   return map;
+};
+
+exports.decorateKeymaps = keymaps => {
+  const keys = {};
+  const jump_prefix = config.hotkeys.jump_prefix ? config.hotkeys.jump_prefix.toLowerCase() : '';
+  const permutation_modifier = config.hotkeys.permutation_modifier
+    ? config.hotkeys.permutation_modifier.toLowerCase()
+    : '';
+  let shortcut;
+  let name;
+
+  if (jump_prefix && jump_prefix.length) {
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9'].forEach(num => {
+      shortcut = `${jump_prefix}+${num}`;
+      name = `pane:move_${num}`;
+      keys[name] = shortcut;
+      if (permutation_modifier && permutation_modifier.length) {
+        shortcut = `${permutation_modifier}+${shortcut}`;
+        name = `pane:switch_${num}`;
+        keys[name] = shortcut;
+      }
+    });
+  }
+
+  Object.keys(config.hotkeys.navigation).forEach(direction => {
+    const key = config.hotkeys.navigation[direction].toLowerCase();
+    const actionType = navigationActionMap[direction];
+
+    if (key && key.length && actionType && actionType.length) {
+      shortcut = key;
+      name = `pane:move_${direction}`;
+      keys[name] = shortcut;
+      if (permutation_modifier && permutation_modifier.length) {
+        shortcut = `${permutation_modifier}+${key}`;
+        name = `pane:switch_${direction}`;
+        keys[name] = shortcut;
+      }
+    }
+  });
+
+  const maximize = config.hotkeys.maximize ? config.hotkeys.maximize.toLowerCase() : '';
+  if (maximize.length) {
+    shortcut = maximize;
+    name = 'pane:maximize';
+    keys[name] = shortcut;
+  }
+
+  debug('Extend keymaps with', keys);
+  return Object.assign({}, keymaps, keys);
 };
 
 exports.decorateTerms = (Terms, {React}) => {
@@ -443,80 +508,55 @@ exports.decorateTerms = (Terms, {React}) => {
       }
     }
 
-    reattachKeyListner() {
-      if (this.keys) {
-        this.keys.reset();
-      }
-      this.handleFocusActive();
-      this.attachKeyListeners();
-    }
-
-    attachKeyListeners() {
-      debug('attachKeyListeners', this.terms.getActiveTerm);
-      if (!this.terms.getActiveTerm) {
-        return;
-      }
-      const term = this.terms.getActiveTerm();
-      if (!term) {
-        return;
-      }
-      const document = term.getTermDocument();
-      const keys = new Mousetrap(document);
-
-      const jump_prefix = config.hotkeys.jump_prefix ? config.hotkeys.jump_prefix.toLowerCase() : '';
-      const permutation_modifier = config.hotkeys.permutation_modifier
-        ? config.hotkeys.permutation_modifier.toLowerCase()
-        : '';
-      if (jump_prefix && jump_prefix.length) {
-        ['1', '2', '3', '4', '5', '6', '7', '8', '9'].forEach(num => {
-          let shortcut = jump_prefix + `+${num}`;
-          //debug('Add shortcut', shortcut);
-          keys.bind(shortcut, e => {
-            this.props.onMoveToPane(num);
-            e.preventDefault();
-            this.reattachKeyListner();
-          });
-          if (permutation_modifier && permutation_modifier.length) {
-            shortcut = `${permutation_modifier} + ${shortcut}`;
-            //debug('Add shortcut', shortcut);
-            keys.bind(shortcut, e => {
-              this.props.onMoveToPane(num, true);
-              e.preventDefault();
-              this.reattachKeyListner();
-            });
-          }
-        });
-      }
-
-      Object.keys(config.hotkeys.navigation).forEach(direction => {
-        const key = config.hotkeys.navigation[direction].toLowerCase();
-        const actionType = navigationActionMap[direction];
-        if (key && key.length && actionType && actionType.length) {
-          keys.bind(key, e => {
-            this.props.onMoveToDirectionPane(actionType);
-            e.preventDefault();
-            this.reattachKeyListner();
-          });
-          if (permutation_modifier && permutation_modifier.length) {
-            keys.bind(`${permutation_modifier}+` + key, e => {
-              this.props.onMoveToDirectionPane(actionType, true);
-              e.preventDefault();
-              this.reattachKeyListner();
-            });
-          }
-        }
-      });
-
-      const maximize = config.hotkeys.maximize ? config.hotkeys.maximize.toLowerCase() : '';
-      if (maximize.length) {
-        keys.bind(maximize, e => {
-          this.props.onMaximizePane();
+    generateCommands() {
+      let name;
+      let handler;
+      let commands = ['1', '2', '3', '4', '5', '6', '7', '8', '9'].reduce((commands_, num) => {
+        name = `pane:move_${num}`;
+        handler = e => {
+          this.props.onMoveToPane(num);
           e.preventDefault();
-          this.reattachKeyListner();
-        });
-      }
+        };
+        commands_[name] = handler;
 
-      this.keys = keys;
+        name = `pane:switch_${num}`;
+        handler = e => {
+          this.props.onMoveToPane(num, true);
+          e.preventDefault();
+        };
+        commands_[name] = handler;
+
+        return commands_;
+      }, {});
+
+      commands = Object.keys(navigationActionMap).reduce((commands_, direction) => {
+        const actionType = navigationActionMap[direction];
+        name = `pane:move_${direction}`;
+        handler = e => {
+          this.props.onMoveToDirectionPane(actionType);
+          e.preventDefault();
+        };
+        commands_[name] = handler;
+
+        name = `pane:switch_${direction}`;
+        handler = e => {
+          this.props.onMoveToDirectionPane(actionType, true);
+          e.preventDefault();
+        };
+        commands_[name] = handler;
+
+        return commands_;
+      }, commands);
+
+      name = 'pane:maximize';
+      handler = e => {
+        this.props.onMaximizePane();
+        this.handleFocusActive();
+        e.preventDefault();
+      };
+      commands[name] = handler;
+
+      return commands;
     }
 
     onDecorated(terms) {
@@ -525,17 +565,8 @@ exports.decorateTerms = (Terms, {React}) => {
       if (this.props.onDecorated) {
         this.props.onDecorated(terms);
       }
-    }
-
-    componentDidUpdate(prev) {
-      if (prev.activeSession !== this.props.activeSession) {
-        this.reattachKeyListner();
-      }
-    }
-
-    componentWillUnmount() {
-      if (this.keys) {
-        this.keys.reset();
+      if (this.terms) {
+        this.terms.registerCommands(this.generateCommands());
       }
     }
 
@@ -568,9 +599,14 @@ exports.decorateTerm = (Term, {React}) => {
     onDecorated(term) {
       debug('Keep term ref');
       this.term = term;
-      if (this.term && this.term.getTermDocument) {
+      if (this.term && this.term.termRef) {
+        this.term.termRef.onmouseenter = this.onMouseEnter;
+      } else if (this.term && this.term.getTermDocument) {
+        // Backward compatibility
         const doc = this.term.getTermDocument();
-        doc.body.onmouseenter = this.onMouseEnter;
+        if (doc && doc.body) {
+          doc.body.onmouseenter = this.onMouseEnter;
+        }
       }
       if (this.props.onDecorated) {
         this.onDecorated(term);
@@ -582,7 +618,17 @@ exports.decorateTerm = (Term, {React}) => {
         onDecorated: this.onDecorated
       };
 
-      if (!config.showIndicators) {
+      //return toto.titi;
+      let indicator;
+      if (config.showIndicators) {
+        if (this.props.isMaximized) {
+          indicator = '🗖';
+        } else if (this.props.termShorcutNum > 0) {
+          indicator = config.indicatorPrefix + this.props.termShorcutNum;
+        }
+      }
+
+      if (!indicator) {
         return React.createElement(Term, Object.assign({}, this.props, props));
       }
       const myCustomChildrenBefore = React.createElement(
@@ -590,7 +636,7 @@ exports.decorateTerm = (Term, {React}) => {
         {
           style: config.indicatorStyle
         },
-        this.props.termShorcutNum > 0 ? config.indicatorPrefix + this.props.termShorcutNum : ''
+        indicator
       );
       const customChildrenBefore = this.props.customChildrenBefore
         ? Array.from(this.props.customChildrenBefore).concat(myCustomChildrenBefore)
