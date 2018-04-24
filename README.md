@@ -58,7 +58,8 @@ module.exports = {
         left: 0,
         fontSize: '10px'
       },
-      focusOnMouseHover: false
+      focusOnMouseHover: false,
+      inactivePaneOpacity: 0.6 // Set to 1 to disable inactive panes dimming
     }
   }
   //...
@@ -99,4 +100,8 @@ Set `config.paneNavigation.focusOnMouseHover` to `true` and focus will change wh
 You can temporarily maximize pane with `meta+enter` (or your configured key) and restore it with the same key.
 You can have one maximized pane per tab.
 
+### Dim inactive panes
+
+By default, inactive panes are dimmed (opacity: 0.6).
+You can disable this by setting `inactivePaneOpacity` to `1`.
 

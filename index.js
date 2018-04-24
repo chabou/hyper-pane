@@ -21,7 +21,8 @@ const defaultConfig = {
     left: 0,
     fontSize: '10px'
   },
-  focusOnMouseHover: false
+  focusOnMouseHover: false,
+  inactivePaneOpacity: 0.8
 };
 
 let config = defaultConfig;
@@ -289,6 +290,18 @@ const onMaximizePane = dispatch => () => {
 exports.decorateConfig = mainConfig => {
   if (mainConfig.paneNavigation) {
     config = merge(JSON.parse(JSON.stringify(defaultConfig)), mainConfig.paneNavigation);
+  }
+  if (config.inactivePaneOpacity < 1) {
+    mainConfig.css += `
+      .term_fit:not(.term_term):not(.term_wrapper):not(.term_active) {
+        opacity: ${config.inactivePaneOpacity};
+      }
+      .term_fit.term_active {
+        opacity: 1;
+        transition: opacity 0.06s ease-in-out;
+        will-change: opacity;
+      }
+    `;
   }
   debug('Decorated config', mainConfig);
   return mainConfig;
