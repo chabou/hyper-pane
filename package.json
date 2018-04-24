@@ -1,11 +1,11 @@
 {
   "name": "hyper-pane",
   "version": "2.0.0",
-  "description":
-    "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
+  "description": "Extension for Hyper.app to enhance pane navigation. Navigate through panes with arrows, jump directly to a specific pane with digit, change focus on mouse hover or temporarily maximize a pane.",
   "main": "index.js",
   "scripts": {
-    "test": "eslint ."
+    "test": "eslint .",
+    "release": "yarn run test && standard-version"
   },
   "repository": {
     "type": "git",
@@ -31,8 +31,15 @@
   },
   "homepage": "https://github.com/chabou/hyper-pane#readme",
   "eslintConfig": {
-    "plugins": ["react", "prettier"],
-    "extends": ["eslint:recommended", "plugin:react/recommended", "prettier"],
+    "plugins": [
+      "react",
+      "prettier"
+    ],
+    "extends": [
+      "eslint:recommended",
+      "plugin:react/recommended",
+      "prettier"
+    ],
     "parserOptions": {
       "ecmaVersion": 8,
       "sourceType": "module",
@@ -49,7 +56,10 @@
       "node": true
     },
     "rules": {
-      "func-names": ["error", "as-needed"],
+      "func-names": [
+        "error",
+        "as-needed"
+      ],
       "no-shadow": "error",
       "no-extra-semi": 0,
       "react/prop-types": 0,
@@ -81,6 +91,7 @@
     "eslint-config-prettier": "2.7.0",
     "eslint-plugin-prettier": "2.3.1",
     "eslint-plugin-react": "7.4.0",
-    "prettier": "1.7.4"
+    "prettier": "1.7.4",
+    "standard-version": "4.3.0"
   }
 }
