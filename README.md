@@ -17,7 +17,12 @@ Inspired by https://github.com/iamstarkov/hyper-panes-iterm2-hotkeys
 
 ## Install
 
-To install, edit `~/.hyper.js` and add `"hyper-pane"` to `plugins`:
+To install, execute:
+```
+hyper i hyper-pane
+```
+
+Or edit `~/.hyper.js` manually and add `"hyper-pane"` to `plugins`:
 
 ```
 plugins: [
