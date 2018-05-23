@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.1"></a>
+## [2.1.1](https://github.com/chabou/hyper-pane/compare/v2.1.0...v2.1.1) (2018-05-23)
+
+
+### Bug Fixes
+
+* prevent maximize if there is only one pane ([965bb3b](https://github.com/chabou/hyper-pane/commit/965bb3b)), closes [#27](https://github.com/chabou/hyper-pane/issues/27)
+
+
+
 <a name="2.1.0"></a>
 # [2.1.0](https://github.com/chabou/hyper-pane/compare/v2.0.0...v2.1.0) (2018-04-24)
 
