@@ -276,10 +276,6 @@ const onMaximizePane = dispatch => () => {
       debug('No termGroup found for active Session');
       return;
     }
-    if (!termGroup.parentUid) {
-      debug('No parent for this session, maximize discarded');
-      return;
-    }
     dispatch_({
       type: 'UI_MAXIMIZE_PANE',
       uid: termGroup.uid
@@ -343,6 +339,10 @@ exports.reduceTermGroups = (state, action) => {
           // Maximize
           debug('Maximizing', action.uid);
           const {parentUid, sessionUid} = state.termGroups[action.uid];
+          if (!parentUid) {
+            debug('No parent for this session, maximize discarded');
+            break;
+          }
           state = state.setIn(['maximizeSave', action.uid], {
             activeRootGroup: state.activeRootGroup,
             parentUid,
