@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.2"></a>
+## [2.1.2](https://github.com/chabou/hyper-pane/compare/v2.1.1...v2.1.2) (2018-05-23)
+
+
+### Bug Fixes
+
+* **maximize:** fix unmaximize regression ([b0de17f](https://github.com/chabou/hyper-pane/commit/b0de17f))
+
+
+
 <a name="2.1.1"></a>
 ## [2.1.1](https://github.com/chabou/hyper-pane/compare/v2.1.0...v2.1.1) (2018-05-23)
 
