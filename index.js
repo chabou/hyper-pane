@@ -276,6 +276,10 @@ const onMaximizePane = dispatch => () => {
       debug('No termGroup found for active Session');
       return;
     }
+    if (!termGroup.parentUid) {
+      debug('No parent for this session, maximize discarded');
+      return;
+    }
     dispatch_({
       type: 'UI_MAXIMIZE_PANE',
       uid: termGroup.uid
