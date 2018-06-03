@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.3"></a>
+## [2.1.3](https://github.com/chabou/hyper-pane/compare/v2.1.2...v2.1.3) (2018-06-03)
+
+
+### Bug Fixes
+
+* onDecorated chain was broken ([#28](https://github.com/chabou/hyper-pane/issues/28)) ([f9c5387](https://github.com/chabou/hyper-pane/commit/f9c5387))
+
+
+
 <a name="2.1.2"></a>
 ## [2.1.2](https://github.com/chabou/hyper-pane/compare/v2.1.1...v2.1.2) (2018-05-23)
 
