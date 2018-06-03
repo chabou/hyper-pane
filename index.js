@@ -626,7 +626,7 @@ exports.decorateTerm = (Term, {React}) => {
         }
       }
       if (this.props.onDecorated) {
-        this.onDecorated(term);
+        this.props.onDecorated(term);
       }
     }
 
