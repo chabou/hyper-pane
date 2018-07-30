@@ -22,7 +22,10 @@ const defaultConfig = {
     fontSize: '10px'
   },
   focusOnMouseHover: false,
-  inactivePaneOpacity: 0.8
+  inactivePaneOpacity: 0.8,
+  activePaneOpacity: 1,
+  inactivePaneBackground: 'transparent',
+  activePaneBackground: 'transparent'
 };
 
 let config = defaultConfig;
@@ -291,18 +294,18 @@ exports.decorateConfig = mainConfig => {
   if (mainConfig.paneNavigation) {
     config = merge(JSON.parse(JSON.stringify(defaultConfig)), mainConfig.paneNavigation);
   }
-  if (config.inactivePaneOpacity < 1) {
-    mainConfig.css += `
-      .term_fit:not(.term_term):not(.term_wrapper):not(.term_active) {
-        opacity: ${config.inactivePaneOpacity};
-      }
-      .term_fit.term_active {
-        opacity: 1;
-        transition: opacity 0.06s ease-in-out;
-        will-change: opacity;
-      }
-    `;
-  }
+  mainConfig.css += `
+    .term_fit:not(.term_term):not(.term_wrapper):not(.term_active) {
+      background: ${config.inactivePaneBackground};
+      opacity: ${config.inactivePaneOpacity};
+    }
+    .term_fit.term_active {
+      background: ${config.activePaneBackground};
+      opacity: ${config.activePaneOpacity};
+      transition: opacity 0.06s ease-in-out;
+      will-change: opacity;
+    }
+  `;
   debug('Decorated config', mainConfig);
   return mainConfig;
 };
