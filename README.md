@@ -60,6 +60,10 @@ module.exports = {
       },
       focusOnMouseHover: false,
       inactivePaneOpacity: 0.6 // Set to 1 to disable inactive panes dimming
+      activePaneOpacity: 1,
+      inactivePaneBackground: 'transparent', // Set to color to have a different background for an active pane
+      activePaneBackground: 'transparent' // Set to color to have a different background for an inactive pane
+
     }
   }
   //...
@@ -105,3 +109,12 @@ You can have one maximized pane per tab.
 By default, inactive panes are dimmed (opacity: 0.6).
 You can disable this by setting `inactivePaneOpacity` to `1`.
 
+### Dim active pane
+
+By default, active panes are not dimmed (opacity: 1).
+You can change this by setting `activePaneOpacity` to `numericValue`.
+
+### Pane backgrounds
+
+By default, inactive and active panes don't have a background color (background: transparent).
+You can change the background color of active/inactive pane by setting `active/inactivePaneBackground` to `'colorName/HEX/rgb/'`.
