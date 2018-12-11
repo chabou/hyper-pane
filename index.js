@@ -16,7 +16,7 @@ const defaultConfig = {
   showIndicators: true,
   indicatorPrefix: '^⌥',
   indicatorStyle: {
-    position: 'absolute',
+    position: 'relative',
     top: 0,
     left: 0,
     fontSize: '10px'
