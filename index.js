@@ -663,3 +663,24 @@ exports.decorateTerm = (Term, {React}) => {
     }
   };
 };
+
+exports.decorateConfig = (config) => {
+  return Object.assign({}, config, {
+    css: `
+      ${config.css || ''}
+      .splitpane_divider_vertical {
+        border: 0;
+        width: 1px;
+        background-image: linear-gradient(to bottom, rgba(210, 210, 210, 0.75), rgba(0, 0, 0, 0));
+      }
+
+      .splitpane_divider_horizontal {
+        border: 0;
+        height: 1px;
+        background-image: linear-gradient(to right, rgba(210, 210, 210, 0.75), rgba(0, 0, 0, 0));
+        margin-top: 6px;
+      }
+    `
+  });
+}
+
