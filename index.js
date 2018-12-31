@@ -108,6 +108,8 @@ const ROOT_FRAME = {
   h: 1
 };
 
+const hiddenTerms = {};
+
 // For each rootGroup, it sorts its children
 function getSortedSessionGroups(termGroups) {
   return getRootGroups(termGroups).reduce(
@@ -327,6 +329,14 @@ exports.middleware = store => next => action => {
         }
       }
       break;
+    case 'SESSION_PTY_DATA': {
+      // Hyper doesn't send data if Term is unmounted
+      const term = hiddenTerms[action.uid];
+      if (term) {
+        term.write(action.data);
+      }
+      break;
+    }
   }
   return next(action);
 };
@@ -628,6 +638,15 @@ exports.decorateTerm = (Term, {React}) => {
       if (this.props.onDecorated) {
         this.props.onDecorated(term);
       }
+    }
+
+    componentWillUnmount() {
+      // Keep reference to hidden terms to write PTY data.
+      // Hyper doesn't send them if Term is unmounted
+      hiddenTerms[this.props.uid] = this.term.term;
+    }
+    componentDidMount() {
+      hiddenTerms[this.props.uid] = null;
     }
 
     render() {
