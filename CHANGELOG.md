@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.4"></a>
+## [2.1.4](https://github.com/chabou/hyper-pane/compare/v2.1.3...v2.1.4) (2019-01-27)
+
+
+### Bug Fixes
+
+* **maximize:** fix invisible data in other panes ([7f0c766](https://github.com/chabou/hyper-pane/commit/7f0c766)), closes [#41](https://github.com/chabou/hyper-pane/issues/41)
+
+
+
 <a name="2.1.3"></a>
 ## [2.1.3](https://github.com/chabou/hyper-pane/compare/v2.1.2...v2.1.3) (2018-06-03)
 
