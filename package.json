@@ -18,7 +18,6 @@
     "hyperterm",
     "pane",
     "navigation",
-    "hyper-plugin",
     "plugin"
   ],
   "plugin": {
