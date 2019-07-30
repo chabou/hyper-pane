@@ -670,12 +670,13 @@ exports.decorateTerm = (Term, {React}) => {
       const myCustomChildrenBefore = React.createElement(
         'div',
         {
+          key: 'pane',
           style: config.indicatorStyle
         },
         indicator
       );
       const customChildrenBefore = this.props.customChildrenBefore
-        ? Array.from(this.props.customChildrenBefore).concat(myCustomChildrenBefore)
+        ? Array(this.props.customChildrenBefore).concat(myCustomChildrenBefore)
         : myCustomChildrenBefore;
       props.customChildrenBefore = customChildrenBefore;
       return React.createElement(Term, Object.assign({}, this.props, props));
