@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+<a name="2.1.5"></a>
+## [2.1.5](https://github.com/chabou/hyper-pane/compare/v2.1.4...v2.1.5) (2019-07-31)
+
+
+### Bug Fixes
+
+* **dep:** bump lodash.merge from 4.6.0 to 4.6.2 ([#52](https://github.com/chabou/hyper-pane/issues/52)) ([5e33fe9](https://github.com/chabou/hyper-pane/commit/5e33fe9))
+
+
+
 <a name="2.1.4"></a>
 ## [2.1.4](https://github.com/chabou/hyper-pane/compare/v2.1.3...v2.1.4) (2019-01-27)
 
